@@ -124,8 +124,6 @@ void CMDS(char a[], char * saveName) {
 	csk_uart0_puts(a);
 	csk_uart0_puts("\r\n");
 	char tmp[400]; 
-//	sprintf(tmp,"Argus RX:\t%s",a);
-//	HeTrans255Str(tmp);
 	int I;
 	for(I=0;I<1000;I++) Nop();
 	if (a[0]=='\r' || a[0]=='\n' || a[0]==0) { 
@@ -192,38 +190,31 @@ void CMDS(char a[], char * saveName) {
 		return;
 	}
 
-	if(a[0]=='I' && a[1]=='R' && a[2]=='O' && a[3]=='N' && a[4]=='M' && a[5]=='A' && a[6]=='N' && a[7]=='L' && a[8]=='i' && a[9]=='v' && a[10]=='e' && a[11]=='s' && a[12]=='0') {// // if a (beings with IRONMANLives0!!!)
-		/* Expects IRONMANLives0
-		*/
-		if(IRONMANINT==0) IRONMANINT=1;
-		else CMDS("RIML",0);
-		return;
-	}
-
 	if(a[0]=='I' && a[1]=='R' && a[2]=='O' && a[3]=='N' && a[4]=='M' && a[5]=='A' && a[6]=='N' && a[7]=='L' && a[8]=='i' && a[9]=='v' && a[10]=='e' && a[11]=='s' && a[12]=='1') {// // if a (beings with IRONMANLives1!!!)
 		/* Expects IRONMANLives1
 		*/
-		if(IRONMANINT==1) IRONMANINT=2;
-		else CMDS("RIML",0);
-		return;
 	}
 
-	if(a[0]=='I' && a[1]=='R' && a[2]=='O' && a[3]=='N' && a[4]=='M' && a[5]=='A' && a[6]=='N' && a[7]=='L' && a[8]=='i' && a[9]=='v' && a[10]=='e' && a[11]=='s' && a[12]=='2') { //if (a begins with IRONMANLives2) !!!
-		/*Expects IRONMANLives2
-		Resets the EPS and PDMs
-		*/
-		if (strlen(a)==13) {
-			if(IRONMANINT!=2) {
-				sprintf(tmp,"IRONMANINT:%d",IRONMANINT);
-				csk_uart0_puts(tmp);
-				HeTrans255Str(tmp);
-				CMDS("RIML",0);
-				return;
-			}
+	if(a[0]=='I' && a[1]=='R' && a[2]=='O' && a[3]=='N' && a[4]=='M' && a[5]=='A' && a[6]=='N' 
+		&& a[7]=='L' && a[8]=='i' && a[9]=='v' && a[10]=='e' && a[11]=='s') {
+		// Switch on the next character
+		if ((a[12] == '0') && (IRONMANINT==0)) {
+			IRONMANINT=1;
+			return;
+		} else if ((a[12] = '1') && (IRONMANINT==1))  {
+			IRONMANINT=2;
+			return;
+		} else if ((a[12] = '2')&& (IRONMANINT==2)) {
 			while(1) {} //Cause a watchdog reset!
 			return;
 		}
-	}//IRONMANLives
+		// If we get here, we haven't followed the sequence
+		sprintf(tmp,"IRONMANINT:%d",IRONMANINT);
+		csk_uart0_puts(tmp);
+		HeTrans255Str(tmp);
+		CMDS("RIML", 0);
+		return;
+	}
 
 	if (a[0]=='V' && a[1]=='D' && a[2]=='L' && a[3]=='B') { //if (a begins with VDLB) !!!
 		/*Gets the number of bytes needed to be downlinked from Independence.
@@ -345,142 +336,126 @@ void CMDS(char a[], char * saveName) {
 			return;
 		}
 	}//SCC
-
-	if (a[0] == 'S' && a[1] == 'D' && a[2] == 'R') { // if a (beings with SDR!!!)
-		/* Expects SDRFFFFFFFFLLLLLLLLname...
-		SDR = Command block
-		FFFFFFFF = Offset in file, in ASCII encoded HEX
-		LLLLLLLL = Length of bytes to be read, in ASCII encoded HEX
-		name... = file name, max of 8 characters, is case sensitive
-		*/
-		if(strlen(a)>20){
-			a[27]=0;
-			char message[strlen(a)+1]; //+1 for the null terminator.
-			strcpy(message,a);
-			OSSignalMsg(MSG_SDR_P,((OStypeMsgP) (message)));
-		}
-		return;
-	}
-
-	if (a[0] == 'S' && a[1] == 'D' && a[2] == 'R'  && a[3] == 'B') { // Download the entire beacon file
-		// Added in software update V2
-		/* This will read the entire file, unless it's extremely large (10,000,000 bytes)
-		*/
-		char message[26]; //+1 for the null terminator.
-		strcpy(message,"SDR0000000010000000BEACON");
-		message[25] = 0;
-		OSSignalMsg(MSG_SDR_P,((OStypeMsgP) (message)));
-		return;
-	}
-
-	if (a[0] == 'S' && a[1] == 'D' && a[2] == 'R'  && a[3] == 'R') { // Download the entire RSSI file
-		// Added in software update V2
-		/* This will read the entire file, unless it's extremely large (10,000,000 bytes)
-		*/
-		OSSignalMsg(MSG_SDR_P,((OStypeMsgP) ("SDR0000000010000000RSSI")));
-		return;
-	}
-
-	if (a[0] == 'S' && a[1] == 'D' && a[2] == 'R'  && a[3] == 'D') { // Download the entire DEPEJEC file
-		// Added in software update V2
-		/* This will read the entire file, unless it's extremely large (10,000,000 bytes)
-		*/
-		char message[27]; //+1 for the null terminator.
-		strcpy(message,"SDR0000000010000000CONFIG");
-		message[25] = 0;
-		OSSignalMsg(MSG_SDR_P,((OStypeMsgP) (message)));
-		return;
-	}
-
-	if (a[0] == 'S' && a[1] == 'D' && a[2] == 'R'  && a[3] == 'D') { // Download the entire DEPEJEC file
-		// Added in software update V2
-		/* This will read the entire file, unless it's extremely large (10,000,000 bytes)
-		*/
-		char message[27]; //+1 for the null terminator.
-		strcpy(message,"SDR0000000010000000DEPEJEC");
-		message[26] = 0;
-		OSSignalMsg(MSG_SDR_P,((OStypeMsgP) (message)));
-		return;
-	}
-
-	if (a[0] == 'S' && a[1] == 'D' && a[2] == 'R'  && a[3] == 'N') { // Download the entire names file
-		// Added in software update V2
-		/* This will read the entire file, unless it's extremely large (10,000,000 bytes)
-		*/
-		char message[25]; //+1 for the null terminator.
-		strcpy(message,"SDR0000000010000000names");
-		message[24] = 0;
-		OSSignalMsg(MSG_SDR_P,((OStypeMsgP) (message)));
-		return;
-	}
-
-	if(a[0] == 'S' && a[1] == 'D' && a[2] == 'W') { //if (a begins with SDW) !!!
-		/*Expects SDWLn...cmd...
-		SDW = Command block
-		L = Number of bytes of the file name
-		n... = name of the file
-		cmd... = command to execute
-		*/
-		char nameLength = makeHex('0',a[3]);
-		char name[9];
-		int i;
-		for (i=0;(i<nameLength && i<8);i++){
-			name[i] = a[4+i];
-		}
-		name[i] = 0;
-		int cmdLength = strlen(a) - 4 - nameLength;
-		for (i = 0; i < cmdLength; i++){
-			a[i] = a[4+nameLength+i];
-		}
-		a[cmdLength] = 0;
-		CMDS(a, name);
-		return;
-	}
-
-	if(a[0] == 'S' && a[1] == 'D' && a[2] == 'A') { //if (a begins with SDA) !!!
-		/*Expects SDALn...data...
-		SDW = Command block
-		L = Number of bytes of the file name
-		n... = name of the file
-		data...=ascii data to append to the file
-		*/
-		char nameLength = makeHex('0',a[3]);
-		char name[9];
-		int i;
-		for (i=0;(i<nameLength && i<8);i++){
-			name[i] = a[4+i];
-		}
-		name[i] = 0;
-
-		int cmdLength = strlen(a) - 4 - nameLength;
-		for (i = 0; i < cmdLength; i++){
-			a[i] = a[4+nameLength+i];
-		}
-		a[cmdLength] = 0;
-		
-		BroadcastOrSave(a, name);
-		return;
-	}
-
-	if(a[0] == 'S' && a[1] == 'D' && a[2] == 'd' && a[3] == 'e' && a[4] == 'l' && a[5] == 'e' && a[6] == 't' && a[7] == 'e') {// // if a (beings with SDdelete!!!)
-		/* Expects SDdeletename...
-		SDdelete = Command block
-		name = file name, max of 8 bytes
-		*/
-		if(strlen(a)>8) {
-			/*if(remove(((char*) (a))+8)) csk_uart0_puts("File Removed\r\n");
-			else csk_uart0_puts("File Not found\r\n");*/
-			F_FILE* file=f_open(((char*) (a))+8,"w"); //the w option discards any file contents, but does leave the file entry.
+	
+	// SD commands deal with reading/writing to the SD card
+	if (a[0] == 'S' && a[1] == 'D') {
+		if (a[2] == 'S') { // SDS gets file size
+			/* Expects SDSname, where name is file name (max 8 chars)
+			 */
+			F_FILE* file=f_open(((char*) (a))+3,"r"); //the w option discards any file contents, but does leave the file entry.
 			if(file) {
-				BroadcastOrSave("File Overwritten\r\n", saveName);
+				f_seek(file, 0L, SEEK_END);
+				unsigned long sz = f_tell(file);
+				sprintf(tmp, "%s is %lu bytes\r\n", (char*) (a) + 3, sz);
+				BroadcastOrSave(tmp, saveName);
 				f_close(file);
 			}
-			else {
-				BroadcastOrSave("File Not found\r\n", saveName);
+			else {					
+				sprintf(tmp, "File not found: %s\r\n", (char*) (a) + 3);
+				BroadcastOrSave(tmp, saveName);
 			}
+			return;
+		}	
+		if (a[2] == 'R') { // SDR downloads data from a file
+			/* Expects SDRFFFFFFFFLLLLLLLLname...
+			SDR = Command block
+			FFFFFFFF = Offset in file, in ASCII encoded HEX
+			LLLLLLLL = Length of bytes to be read, in ASCII encoded HEX
+			name... = file name, max of 8 characters, is case sensitive
+			*/
+			if(strlen(a)>20){
+				a[27]=0;
+				char message[strlen(a)+1]; //+1 for the null terminator.
+				strcpy(message,a);
+				OSSignalMsg(MSG_SDR_P,((OStypeMsgP) (message)));
+				return;
+			}
+			// If it doesn't fit; fall down to error
+		} else if (a[2] == 'F') { // SDF Downloads a standard file
+			// switch on the value of a[3]
+			char message[27];
+			char fName[7];
+			// Default is no file
+			fName[0] = 0;
+			if (a[3] == 'B') { // Download the entire beacon file
+				strcpy(fName, "BEACON");
+			} else if (a[3] == 'R') { // Download the entire RSSI file
+				strcpy(fName, "RSSI");
+			} else if (a[3] == 'D') { // Download the entire DEPEJEC file
+				strcpy(fName, "DEPEJEC");
+			} else if (a[3] == 'C') { // Download the entire CONFIG file
+				strcpy(fName, "CONFIG");
+			} else if (a[3] == 'N') { // Download the entire CONFIG file
+				strcpy(fName, "names");
+			}
+			sprintf(message,"SDR0000000000100000%s", fName);
+			OSSignalMsg(MSG_SDR_P,((OStypeMsgP) (message)));
+			return;
+		} else if (a[2] == 'W') { // SDW overwrites data to a file
+			/*Expects SDWLn...cmd...
+			SDW = Command block
+			L = Number of bytes of the file name
+			n... = name of the file
+			cmd... = command to execute
+			*/
+			char nameLength = makeHex('0',a[3]);
+			char name[9];
+			int i;
+			for (i=0;(i<nameLength && i<8);i++){
+				name[i] = a[4+i];
+			}
+			name[i] = 0;
+			int cmdLength = strlen(a) - 4 - nameLength;
+			for (i = 0; i < cmdLength; i++){
+				a[i] = a[4+nameLength+i];
+			}
+			a[cmdLength] = 0;
+			CMDS(a, name);
+			return;
+		} else if (a[2] == 'A') { // SDA appends data to file
+			/*Expects SDALn...data...
+			SDW = Command block
+			L = Number of bytes of the file name
+			n... = name of the file
+			data...=ascii data to append to the file
+			*/
+			char nameLength = makeHex('0',a[3]);
+			char name[9];
+			int i;
+			for (i=0;(i<nameLength && i<8);i++){
+				name[i] = a[4+i];
+			}
+			name[i] = 0;
+
+			int cmdLength = strlen(a) - 4 - nameLength;
+			for (i = 0; i < cmdLength; i++){
+				a[i] = a[4+nameLength+i];
+			}
+			a[cmdLength] = 0;
+		
+			BroadcastOrSave(a, name);
+			return;
+		} else if (a[2] == 'd' && a[3] == 'e' && a[4] == 'l' && a[5] == 'e' && a[6] == 't' && a[7] == 'e') {// // if a (beings with SDdelete!!!)
+			/* Expects SDdeletename...
+			SDdelete = Command block
+			name = file name, max of 8 bytes
+			*/
+			if(strlen(a)>8) {
+				/*if(remove(((char*) (a))+8)) csk_uart0_puts("File Removed\r\n");
+				else csk_uart0_puts("File Not found\r\n");*/
+				F_FILE* file=f_open(((char*) (a))+8,"w"); //the w option discards any file contents, but does leave the file entry.
+				if(file) {
+					BroadcastOrSave("File Overwritten\r\n", saveName);
+					f_close(file);
+				}
+				else {
+					BroadcastOrSave("File Not found\r\n", saveName);
+				}
+			}
+			return;
 		}
-		return;
-	}	
+		// Commmand not recogiaed; let it fall to the end
+	} // End SD family of commands
 
 	if(a[0] == 'R' && a[1] == 'Z' && a[2] == 'C' && a[3] == 'L') {// // if a (beings with RZCL!!!)
 		/* Expects RZCL
@@ -489,31 +464,17 @@ void CMDS(char a[], char * saveName) {
 		return;
 	}
 
-	if(a[0]=='Z' && a[1]=='E' && a[2]=='R' && a[3]=='O' && a[4]=='C' && a[5]=='l' && a[6]=='o' && a[7]=='c' && a[8]=='k' && a[9]=='0') {// if a (beings with ZEROClock0!!!)
-		/* Expects ZEROClock0
-		*/
-		if(ZEROCLOCKINT==0) ZEROCLOCKINT=1;
-		else CMDS("RZCL",0);
-		return;
-	}
-
-	if(a[0]=='Z' && a[1]=='E' && a[2]=='R' && a[3]=='O' && a[4]=='C' && a[5]=='l' && a[6]=='o' && a[7]=='c' && a[8]=='k' && a[9]=='1') {// if a (beings with ZEROClock1!!!)
-		/* Expects ZEROClock1
-		*/
-		if(ZEROCLOCKINT==1) ZEROCLOCKINT=2;
-		else CMDS("RZCL",0);
-		return;
-	}
-
-	if(a[0]=='Z' && a[1]=='E' && a[2]=='R' && a[3]=='O' && a[4]=='C' && a[5]=='l' && a[6]=='o' && a[7]=='c' && a[8]=='k' && a[9]=='2') { // if a (beings with ZEROClock2!!!)
-		if (strlen(a)==10) {
-			if(ZEROCLOCKINT!=2) {
-				sprintf(tmp,"ZEROCLOCKINT:%d",ZEROCLOCKINT);
-				csk_uart0_puts(tmp);
-				HeTrans255Str(tmp);
-				CMDS("RZCL",0);
-				return;
-			}
+	if(a[0]=='Z' && a[1]=='E' && a[2]=='R' && a[3]=='O' 
+		&& a[4]=='C' && a[5]=='l' && a[6]=='o' && a[7]=='c' && a[8]=='k') {
+		// Switch on the next character
+		if ((a[9]=='0') && (ZEROCLOCKINT==0)) { 
+			ZEROCLOCKINT=1;
+			return;
+		} else if ((a[9]=='1') && (ZEROCLOCKINT==1)) { 
+			ZEROCLOCKINT=2;
+			return;
+		} else if ((a[9]=='2') && (ZEROCLOCKINT==2)) { 
+			// Reset all to initial conditions
 			long i;
 			CMDS("ION",0);
 			//Set up & zero out RTC. Resets to State 0.
@@ -554,6 +515,12 @@ void CMDS(char a[], char * saveName) {
 			//CMDS("IRONMANLives2",0);
 			return;
 		}
+		// If we get here, we're off-sequence. Reset the counter
+		sprintf(tmp,"ZEROCLOCKINT:%d",ZEROCLOCKINT);
+		csk_uart0_puts(tmp);
+		HeTrans255Str(tmp);
+		CMDS("RZCL",0);
+		return;
 	}
 
 	if(a[0]=='B' && a[1]=='U' && a[2]=='R' && a[3]=='N') { // if a (beings with BURN!!!)
@@ -861,30 +828,12 @@ void CMDS(char a[], char * saveName) {
 	if (a[0]=='H' && a[1]=='E' && a[2]=='S' && a[3]=='C') { //HESC
 		//HESC
 		commandHeStandardConfig();	// Found in task_MHXPower
-//		char* HEStandardConfig=getHeConfig();
-//		long i;
-//		for(i=0;i<100000;i++) Nop();
-//		// We cannot act until the TX line is clear
-//		OS_WaitBinSem(BINSEM_CLEAR_TO_SEND_P, OSNO_TIMEOUT);
-//		for(i=0;i<44;i++) {
-//			csk_uart1_putchar(HEStandardConfig[i]);
-//		}
-//		for(i=0;i<100000;i++) Nop();
 		return;
     }//HESC
 
 	if (a[0]=='H' && a[1]=='E' && a[2]=='B' && a[3]=='O') { //HEBO
 		//HEBO
 		commandHeNoBeacons();
-//		long i;
-//		for(i=0;i<100000;i++) Nop();
-//		char HeNoBeacons[11]={0x48,0x65,0x10,0x11,0x00,0x01,0x22,0x74,0x00,0xB8,0x2A};
-//		// We cannot act until the TX line is clear
-//		OS_WaitBinSem(BINSEM_CLEAR_TO_SEND_P, OSNO_TIMEOUT);
-//		for(i=0;i<11;i++) {
-//			csk_uart1_putchar(HeNoBeacons[i]);
-//		}
-//		for(i=0;i<100000;i++) Nop();
 		return;
     }//HEBO
 
@@ -916,11 +865,6 @@ void CMDS(char a[], char * saveName) {
 		return;
     }//EJEC
 	if (a[0]=='E' && a[1]=='C' && a[2]=='H' && a[3]=='O') { //ECHO
-		// Echo what was sent
-//        unsigned int pos = 0;
-//        while (a[pos] != 0) {
-//    		pos++;
-//		}
 		HeTrans255Str(a);
 		return;
     }//ECHO

@@ -141,7 +141,7 @@ void task_RSSI(void) {
     /** Get RSSI every minute, and configuration every 10 */
 	OS_WaitBinSem(BINSEM_CLEAR_TO_SEND_P, OSNO_TIMEOUT);
 	askNSaveConfig();
-	for (count=0; count < 2; count++) { // Should be 10
+	for (count=0; count < 10; count++) {
 		OS_WaitBinSem(BINSEM_CLEAR_TO_SEND_P, OSNO_TIMEOUT);
 		askNSaveRSSI();
 		for (i=0; i<24; i++) {

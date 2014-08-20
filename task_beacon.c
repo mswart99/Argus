@@ -16,6 +16,7 @@ $Date: 2014-08-14  $
 ******************************************************************************/
 #include "main.h"
 #include "task_beacon.h"
+#include "task_I2C.h"
 
 // Pumpkin CubeSat Kit headers
 #include "csk_io.h"
@@ -37,7 +38,9 @@ extern unsigned long long getMissionClock();
 extern char* RSSI_getTelem(int charOrAscii);
 extern char* RSSI_getConfig(int charOrAscii);
 extern char* VUC_getStoredTelem(int charOrAscii);
-
+extern char * asciified3Array(unsigned int* a, int aLen);
+extern unsigned int* i2c_getADC();
+extern unsigned int i2c_getThisADCchannel(int channelID);
 /******************************************************************************
 ****                                                                       ****
 **                                                                           **
@@ -66,14 +69,7 @@ The beacon broadcasts telemetry in frames.
 ****                                                                       ****
 ******************************************************************************/
 
-#define SCLK_HIGH csk_io33_high()
-#define SCLK_LOW csk_io33_low()
-#define MISO ((PORTE&BIT9)>>9)
-#define CS1_HIGH csk_io11_high()
-#define CS1_LOW csk_io11_low()
-#define CS2_HIGH csk_io9_high()
-#define CS2_LOW csk_io9_low()
-#define SCLK_DELAY 200
+
 
 /* The first is the 1-second intervals between any beacon broadcasts. The remaining
  * are the number of beacon broadcasts between sending that frame. See setFrameIntervals()
@@ -103,21 +99,16 @@ void setBeaconFrameIntervals(unsigned int *nums) {
 }
 
 static char vucrun[2], vucstat[2], vutime[6];
-static unsigned int ADCData[16]={0};
 static char final[400];
 static unsigned int beaconWaitCounts[3];
 static int frameID;
 
 void task_beacon(void) {
-	unsigned char data;
-	unsigned int count, i;
+//	unsigned char data;
+	unsigned int i; //count, i;
 //	F_FILE * BeaconFile;
 //	char* tmpChar;
 //	char tmpStr[2*CONFIG_LEN];
-	TRISE|=BIT9; //Set MISO As input. Outputs are default.
-	SCLK_LOW;
-	CS1_HIGH; //Active Low
-	CS2_HIGH; //Active Low
     // Initialize the interval counters; beacon on startup
 	beaconWaitCounts[0]=beaconFrameIntervals[0];
     // Give a good-faith effort to offset the counters in various positions
@@ -161,44 +152,10 @@ void task_beacon(void) {
 			unsigned long long mc=getMissionClock();
 			if(mc>=999999999) mc=999999999;
 		 	sprintf(final, "%s %09llu ", final, mc); 
-            
             // ======================= Switch on frame ID
 			if (frameID == 0) {
-				//=============Begin Atmega Interface=============
-				CS1_LOW;
-				OS_Delay(10);
-	
-				for(data=0;data<8;data++) { //ADC-Reads (10-Bits)
-					ADCData[data]=0;
-					for(count=0;count<10;count++) { //Bits
-						SCLK_HIGH;
-						for(i=0;i<SCLK_DELAY;i++) Nop(); //Delay
-						ADCData[data]|=(MISO<<count);
-						SCLK_LOW;
-						for(i=0;i<SCLK_DELAY;i++) Nop(); //Delay
-					}
-					sprintf(final,"%s%03X ",final,ADCData[data]);
-				}
-	
-				CS1_HIGH; 
-				CS2_LOW;
-				// Without this delay, ADC is read incorrectly
-				OS_Delay(10);
-	
-				for(data=8;data<16;data++) { //ADC-Reads (10-Bits)
-					ADCData[data]=0;
-					for(count=0;count<10;count++) { //Bits
-						SCLK_HIGH;
-						for(i=0;i<SCLK_DELAY;i++) Nop(); //Delay
-						ADCData[data]|=(MISO<<count);
-						SCLK_LOW;
-						for(i=0;i<SCLK_DELAY;i++) Nop(); //Delay
-					}
-					sprintf(final,"%s%03X ",final,ADCData[data]);
-				}
-
-				CS2_HIGH;
-				//==============End Atmega Interface==============
+				sprintf(final, "%s %s ", final, 
+					asciified3Array(i2c_getADC(), NUM_ADC_CHANNELS));
 
 				// VUC data
 	            // [1-POWER][4-VUC STATUS][4-RUN STATUS][2-Reset count][4-Clock time]
@@ -217,22 +174,15 @@ void task_beacon(void) {
 
    			} else if (frameID == 1) {
                 // VUC Telemetry data
-                sprintf(final, "%s%s", final, VUC_getStoredTelem(2));
-                // Rest of VUC telemetry
-//               for(i=0;i<VUC_TELEM_LEN;i++) {
-//                   sprintf(final,"%s%02X",final,vutelem[i]);
-//               }
+                sprintf(final, "%s%03X %s", final, i2c_getThisADCchannel(ADC_BATV),
+					VUC_getStoredTelem(2));
             } else if (frameID == 2) {
                 // Helium config/telemetry data
-                sprintf(final, "%s%s", final, RSSI_getConfig(2));
+                sprintf(final, "%s%03X %s", final,i2c_getThisADCchannel(ADC_BATV), 
+					RSSI_getConfig(2));
 				// These must be split into two sprintfs, or the array is
 				// repeated!
                 sprintf(final, "%s %s", final, RSSI_getTelem(2));
-//                sprintf(tmpStr, "%02X", tmpChar[0]);
-//                for (i=1; i<TELEM_LEN; i++) {
-//                    sprintf(tmpStr, "%s%02X", tmpStr, tmpChar[i]);
-//                }
-//                sprintf(final, "%s%s", final, tmpStr);
             }
 
             int n;

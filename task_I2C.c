@@ -24,6 +24,7 @@ $Date: 2009-11-02 00:45:07-08 $
 // Pumpkin Salvo headers
 #include "salvo.h"
 
+static unsigned int ADCData[NUM_ADC_CHANNELS]={0};
 static int I2CSPEED=78; 	// I2CSPEED = 18 at 8Mhz for 400kHz I2C clock, or 78-->100kHz, or etc.
 //--------------------------Begin I2C protocols.-----------------------------------------
 //--------------------------Begin imported I2C protocols.--------------------------------
@@ -367,6 +368,16 @@ char * i2c_SnR_v2(int address, char sending[], int numSend, int numRec,
 
 //--------------------------End I2C protocols.-----------------------------------------
 
+/* Returns the ADC array 
+ */
+unsigned int* i2c_getADC() {
+    return ADCData;
+}
+
+unsigned int i2c_getThisADCchannel(int channelID) {
+	return(ADCData[channelID]);
+}
+
 void task_I2C(void) {
 	//***BEGIN Fix I2C startup***
 	//The PIC is looking for a "stop bit last seen on bus" to ensure that the bus is free.
@@ -391,33 +402,58 @@ void task_I2C(void) {
 	//This turns off the halt bit in the RTC.
 	char sending[2] = {0x0C, 0x3F};
 	i2c_SnR_v2(0x68, sending, 2, 0, sending, 0); 
-//	i2c_start(); 
+//	i2c_start();
 //	send_i2c_byte((0x68<<1));
 //	send_i2c_byte(0x0C);
 //	send_i2c_byte(0x3F);
 //	reset_i2c_bus();
 //	int i = 0;
 //	for(i=0;i<1000;i++) Nop();
+	unsigned char data;
+	unsigned int count, i;
+	TRISE|=BIT9; //Set MISO As input. Outputs are default.
+	SCLK_LOW;
+	CS1_HIGH; //Active Low
+	CS2_HIGH; //Active Low
 
 	while(1) {
-		OS_Delay(250);
-		/*char sendTemp[]={0x1B,0x00};
-		char receiveTemp[50];
-		csk_uart0_puts("task_I2C:\t\t");
+		OS_Delay(230);
+		//=============Begin Atmega Interface=============
+		CS1_LOW;
+		OS_Delay(20);
 
-		char sendTemp2[]={0x00,0};
-		csk_uart0_puts(i2c_SnR(0b1101001,sendTemp2,1,receiveTemp,1)); 	//Debugging only...--Asks the Gyro who it is (should be 69).
-		csk_uart0_puts(" "); 
+		for(data=0;data<8;data++) { //ADC-Reads (10-Bits)
+			ADCData[data]=0;
+			for(count=0;count<10;count++) { //Bits
+				SCLK_HIGH;
+				for(i=0;i<SCLK_DELAY;i++) Nop(); //Delay
+				ADCData[data]|=(MISO<<count);
+				SCLK_LOW;
+				for(i=0;i<SCLK_DELAY;i++) Nop(); //Delay
+			}
+//			sprintf(final,"%s%03X ",final,ADCData[data]);
+		}
+	
+		CS1_HIGH; 
+		OS_Delay(230);
 
-		csk_uart0_puts(i2c_SnR(0b1101001,sendTemp,8,receiveTemp,1));
-		csk_uart0_puts("\r\n");
+		CS2_LOW;
+		// Without this delay, ADC is read incorrectly
+		OS_Delay(20);	
+		for(data=8;data<16;data++) { //ADC-Reads (10-Bits)
+			ADCData[data]=0;
+			for(count=0;count<10;count++) { //Bits
+				SCLK_HIGH;
+				for(i=0;i<SCLK_DELAY;i++) Nop(); //Delay
+				ADCData[data]|=(MISO<<count);
+				SCLK_LOW;
+				for(i=0;i<SCLK_DELAY;i++) Nop(); //Delay
+			}
+//			sprintf(final,"%s%03X ",final,ADCData[data]);
+		}
 
-		OS_Delay(100);*/
-		
-		/*char sendTemp3[]={0x70};
-		csk_uart0_puts("task_I2C:\t\t");
-		csk_uart0_puts(i2c_SnR(0x38,sendTemp3,6,receiveTemp,1));
-		csk_uart0_puts("\r\n");*/
+		CS2_HIGH;
+		//==============End Atmega Interface==============
 	}
 } /* task_I2C() */
 

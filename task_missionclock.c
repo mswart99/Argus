@@ -30,6 +30,7 @@ $Date: 2009-11-02 00:45:07-08 $
 static char asciiA[MAX_ASCII_ARRAY];	// Maximum size of asciified array
 // -----------------------------------------------------
 // I don't know where else to put these utilities -MAS
+
 /* Converts an array of characters into an ascii-fied hex array. In other
  * words, 0x04 becomes "04 ".
  *
@@ -61,6 +62,41 @@ char* asciifiedArrayNoSpace(char *a, int aLen) {
     int i;
     for (i=1; i < aLen; i++) {
         sprintf(asciiA, "%s%02hhX", asciiA, a[i]);
+    }
+    return(asciiA);
+}
+
+/* Converts an array of characters into an ascii-fied hex array of
+ * length 3 characters each (i.e., %03X)
+ *
+ * aLen is the original length of the array
+ * returns: a char array of nearly 4 times the original length, with the full ASCII set
+ *   Note that it will NOT have the last trailing space!
+ */
+char* asciified3Array(unsigned int *a, int aLen) {
+	if (aLen >= MAX_ASCII_ARRAY) {
+		aLen = MAX_ASCII_ARRAY;
+	} else if (aLen < 0) {
+		aLen = 0;
+	}
+    sprintf(asciiA, "%03X", a[0]);
+    int i;
+    for (i=1; i < aLen; i++) {
+        sprintf(asciiA, "%s %03hhX", asciiA, a[i]);
+    }
+    return(asciiA);
+}
+
+char* asciified3ArrayNoSpace(unsigned int *a, int aLen) {
+	if (aLen >= MAX_ASCII_ARRAY) {
+		aLen = MAX_ASCII_ARRAY;
+	} else if (aLen < 0) {
+		aLen = 0;
+	}
+    sprintf(asciiA, "%03X", a[0]);
+    int i;
+    for (i=1; i < aLen; i++) {
+        sprintf(asciiA, "%s%03hhX", asciiA, a[i]);
     }
     return(asciiA);
 }
