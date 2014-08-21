@@ -154,8 +154,8 @@ void task_beacon(void) {
 		 	sprintf(final, "%s %09llu ", final, mc); 
             // ======================= Switch on frame ID
 			if (frameID == 0) {
-				sprintf(final, "%s %s ", final, 
-					asciified3Array(i2c_getADC(), NUM_ADC_CHANNELS));
+//				sprintf(final, "%s %s ", final, 
+//					asciified3Array(i2c_getADC(), NUM_ADC_CHANNELS));
 
 				// VUC data
 	            // [1-POWER][4-VUC STATUS][4-RUN STATUS][2-Reset count][4-Clock time]
@@ -174,11 +174,13 @@ void task_beacon(void) {
 
    			} else if (frameID == 1) {
                 // VUC Telemetry data
-                sprintf(final, "%s%03X %s", final, i2c_getThisADCchannel(ADC_BATV),
+                sprintf(final, "%s %s", final, 
+					//i2c_getThisADCchannel(ADC_BATV),
 					VUC_getStoredTelem(2));
             } else if (frameID == 2) {
                 // Helium config/telemetry data
-                sprintf(final, "%s%03X %s", final,i2c_getThisADCchannel(ADC_BATV), 
+                sprintf(final, "%s %s", final,
+					//i2c_getThisADCchannel(ADC_BATV), 
 					RSSI_getConfig(2));
 				// These must be split into two sprintfs, or the array is
 				// repeated!

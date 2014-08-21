@@ -417,7 +417,12 @@ void task_I2C(void) {
 	CS2_HIGH; //Active Low
 
 	while(1) {
-		OS_Delay(230);
+		OS_Delay(250);
+		OS_Delay(250);
+		OS_Delay(250);
+		OS_Delay(100);
+	}
+	while(1) {
 		//=============Begin Atmega Interface=============
 		CS1_LOW;
 		OS_Delay(20);
@@ -435,7 +440,7 @@ void task_I2C(void) {
 		}
 	
 		CS1_HIGH; 
-		OS_Delay(230);
+		OS_Delay(100);
 
 		CS2_LOW;
 		// Without this delay, ADC is read incorrectly

@@ -183,7 +183,7 @@ void task_MHXPower(void) {
 				// We cannot act until the TX line is clear
 				OS_WaitBinSem(BINSEM_CLEAR_TO_SEND_P, OSNO_TIMEOUT);
 				for(i=0;i<44;i++) {
-					csk_uart1_putchar(HEStandardConfig[i]);
+//					csk_uart1_putchar(HEStandardConfig[i]);
 				}
 				for(i=0;i<100000;i++) Nop();
 				count=0;
@@ -196,7 +196,7 @@ void task_MHXPower(void) {
 		HeCkSum(HePowerLevel,6); 
 		HeCkSum(HePowerLevel,9); //This will append two bytes to the end.
 		for(i=0;i<11;i++) {
-			csk_uart1_putchar(HePowerLevel[i]);
+//			csk_uart1_putchar(HePowerLevel[i]);
 		}
 		count=0;
 		while(count<secsPowerHighAfterContact) {
@@ -214,7 +214,7 @@ void task_MHXPower(void) {
 		// We cannot act until the TX line is clear
 		OS_WaitBinSem(BINSEM_CLEAR_TO_SEND_P, OSNO_TIMEOUT);
 		for(i=0;i<11;i++) {
-			csk_uart1_putchar(HePowerLevel2[i]);
+//			csk_uart1_putchar(HePowerLevel2[i]);
 		}		
 	}//While(1)
 } /* task_MHXPower() */

@@ -116,7 +116,7 @@ void task_missionclock(void) {
 	//	missionclock++;
 	//}
 	while((!(OSReadBinSem(BINSEM_DEPLOYED_P))) && missionclock<secsBeforeDeployment) {
-		OS_Delay(100);
+		OS_Delay(95);
 		missionclock++;
 	}
 
