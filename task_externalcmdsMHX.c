@@ -57,11 +57,11 @@ char HeTrans255(char* inpt, int n) {
 		if(n>255) n=255;
 		if(n<0) n=0;
 		char HeOut[n+10];
-		HeOut[0]='H';
-		HeOut[1]='e';
-		HeOut[2]=0x10;
-		HeOut[3]=0x03; //Transmit.
-		HeOut[4]=0x00;
+		HeOut[0]=SYNC1;
+		HeOut[1]=SYNC2;
+		HeOut[2]=HE_COMMAND;
+		HeOut[3]=TRANSMIT_DATA; //Transmit.
+		HeOut[4]=0x00;          // No parameter
 		HeOut[5]=(unsigned char) (n&0xFF); //n=Size of payload.
 		
 		HeCkSum(HeOut,6); //This will append two bytes to the end.
@@ -90,30 +90,6 @@ char HeTrans255Str(char* inpt) {
 	while(inpt[n]) n++; //Find the null termination char.
 	if(n>255) n=255;
 	return(HeTrans255(inpt, n));
-//	char HeOut[n+10];
-//	HeOut[0]='H';
-//	HeOut[1]='e';
-//	HeOut[2]=0x10;
-//	HeOut[3]=0x03; //Transmit.
-//	HeOut[4]=0x00;
-//	HeOut[5]=(unsigned char) (n&0xFF); //n=Size of payload.
-//	
-//	HeCkSum(HeOut,6); //This will append two bytes to the end.
-//	
-//	int i=0;
-//	while(i<n) {
-//		HeOut[i+8]=inpt[i]; //Copy Payload into buffer.
-//		i++;
-//	}
-//	HeCkSum(HeOut,8+n); //This will append two bytes to the end.
-//	if(OSReadBinSem(BINSEM_HEON_P)) {
-//		for(i=0;i<(10+n);i++)
-//			csk_uart1_putchar(HeOut[i]);
-//	}
-//	else { 
-//		csk_uart0_puts("Failed Transmit, radio disabled.\r\n");
-//	}
-//	return 1;
 }
 
 //Three ways to save, to avoid collisions.

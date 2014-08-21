@@ -178,7 +178,7 @@ void task_MHXPower(void) {
 		count=0;
 		while(!OSReadBinSem(BINSEM_RAISEPOWERLEVEL_P)) {
 			OS_Delay(250);
-			if(count==960) { //40min
+			if(count >= 960) { //40min
 				for(i=0;i<100000;i++) Nop();
 				// We cannot act until the TX line is clear
 				OS_WaitBinSem(BINSEM_CLEAR_TO_SEND_P, OSNO_TIMEOUT);
@@ -191,7 +191,8 @@ void task_MHXPower(void) {
 			count++;
 		}
 		OSTryBinSem(BINSEM_RAISEPOWERLEVEL_P);
-		char HePowerLevel[11]={'H', 'e', 0x10, 0x20, 0x00, 0x01, 0,0,highPowerLevel};
+		char HePowerLevel[11]={SYNC1, SYNC2, HE_COMMAND, FAST_PA_SET,
+            0x00, 0x01, 0,0, highPowerLevel};
 		HeCkSum(HePowerLevel,6); 
 		HeCkSum(HePowerLevel,9); //This will append two bytes to the end.
 		for(i=0;i<11;i++) {
@@ -206,7 +207,8 @@ void task_MHXPower(void) {
 			OS_Delay(100);
 			count++;
 		}
-		char HePowerLevel2[11]={'H', 'e', 0x10, 0x20, 0x00, 0x01, 0,0,defaultPowerLevel};
+		char HePowerLevel2[11]={SYNC1, SYNC2, HE_COMMAND, FAST_PA_SET,
+            0x00, 0x01, 0,0,defaultPowerLevel};
 		HeCkSum(HePowerLevel2,6); 
 		HeCkSum(HePowerLevel2,9); //This will append two bytes to the end.
 		// We cannot act until the TX line is clear

@@ -82,7 +82,7 @@ char* asciified3Array(unsigned int *a, int aLen) {
     sprintf(asciiA, "%03X", a[0]);
     int i;
     for (i=1; i < aLen; i++) {
-        sprintf(asciiA, "%s %03hhX", asciiA, a[i]);
+        sprintf(asciiA, "%s %03X", asciiA, a[i]);
     }
     return(asciiA);
 }
@@ -96,7 +96,7 @@ char* asciified3ArrayNoSpace(unsigned int *a, int aLen) {
     sprintf(asciiA, "%03X", a[0]);
     int i;
     for (i=1; i < aLen; i++) {
-        sprintf(asciiA, "%s%03hhX", asciiA, a[i]);
+        sprintf(asciiA, "%s%03X", asciiA, a[i]);
     }
     return(asciiA);
 }

@@ -10,6 +10,7 @@
 #define SYNC1				 	  'H'
 #define SYNC2					  'e'
 #define SYNC3					  0x20
+#define HE_COMMAND                0x10
 #define HE_TX					  0x40
 #define NO_OP_COMMAND			  0x01
 #define RESET_SYSTEM			  0x02
