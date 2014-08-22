@@ -26,8 +26,9 @@ $Date: 2010-02-13 13:17:58-08 $
 #define STR_1TAB              "\t"
 #define STR_2TABS             "\t\t"
 #define STR_CRLF              "\r\n"
-#define OS_VERSION            7
+#define OS_VERSION            8
 #define SC_ID 				  2
+#define STATE_FILE            "DEPEJEC";
   
 // Macros for user-readable messages.
 #define user_debug_msg(x)     csk_uart0_msg_ts(x)

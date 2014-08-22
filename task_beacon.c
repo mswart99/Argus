@@ -34,13 +34,14 @@ extern void VUC_getRunState(char* dat);
 extern void	VUC_getStatus(char *dat);
 extern void VUC_getTime(char* dat);
 
-extern unsigned long long getMissionClock();
+extern void getMissionClock(char* array);
 extern char* RSSI_getTelem(int charOrAscii);
 extern char* RSSI_getConfig(int charOrAscii);
 extern char* VUC_getStoredTelem(int charOrAscii);
 extern char * asciified3Array(unsigned int* a, int aLen);
 extern unsigned int* i2c_getADC();
-extern unsigned int i2c_getThisADCchannel(int channelID);
+extern unsigned int i2c_getThisADCchannel(int channelID);
+
 /******************************************************************************
 ****                                                                       ****
 **                                                                           **
@@ -145,14 +146,12 @@ void task_beacon(void) {
 			int states = OSReadBinSem(BINSEM_DEPLOYED_P) + 2*OSReadBinSem(BINSEM_EJECTED_P)
                 + 8*OSReadBinSem(BINSEM_BURNCIRCUIT_P) + 4*OSReadBinSem(BINSEM_CLEAR_TO_SEND_P);
             // Base frame: Mission_Clock [ADCs] VUC_Data Real_Time_Clock
+            getMissionClockString(strTmp);
 
-		 	sprintf(final, "%s%02X%02X%02X%02X", BEACON_START, SC_ID, 
-				OS_VERSION, states, frameID);
+		 	sprintf(final, "%s%02X%02X%02X%02X %s ", BEACON_START, SC_ID,
+				OS_VERSION, states, frameID, strTmp);
             
-			unsigned long long mc=getMissionClock();
-			if(mc>=999999999) mc=999999999;
-		 	sprintf(final, "%s %09llu ", final, mc); 
-            // ======================= Switch on frame ID
+           // ======================= Switch on frame ID
 			if (frameID == 0) {
 //				sprintf(final, "%s %s ", final, 
 //					asciified3Array(i2c_getADC(), NUM_ADC_CHANNELS));

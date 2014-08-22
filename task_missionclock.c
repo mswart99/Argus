@@ -107,6 +107,12 @@ unsigned long long getMissionClock() {
 	return missionclock;
 }
 
+void getMissionClockString(char* a) {
+    unsigned long long mc=missionclock;
+    if(mc>=999999999) mc=999999999;
+    sprintf(a,"%09llu",mc);
+}
+
 void task_missionclock(void) {
 	static unsigned long long secsBeforeDeployment=45*60; //45minutes by 60 seconds.
 
@@ -129,7 +135,7 @@ void task_missionclock(void) {
 	
 		OSSignalBinSem(BINSEM_DEPLOYED_P);
 		csk_uart0_puts("Satellite is Deployed\r\n");
-		F_FILE * Deployed_Ejected_SDSave = f_open("DEPEJEC","r+");
+		F_FILE * Deployed_Ejected_SDSave = f_open(STATE_FILE,"r+");
 		//Record Deployed on SD-Card
 		//In file: 1=>just deployed, 2=>just ejected, 3=>both deployed and ejected true.
 		if(Deployed_Ejected_SDSave) {

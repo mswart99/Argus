@@ -75,7 +75,8 @@ int main() {
 	*/
   // Create tasks.
   OSCreateTask(task_missionclock,	   TASK_MISSIONCLOCK_P,		 1);
-  OSCreateTask(task_externalcmdsMHX,   TASK_EXTERNALCMDSMHX_P,   2);
+  OSCreateTask(task_HeListen,          TASK_HELISTEN_P,          2);
+  OSCreateTask(task_HeTalk,            TASK_HETALK_P,            3);
   OSCreateTask(task_externalcmds,      TASK_EXTERNALCMDS_P,      4);
   OSCreateTask(task_scheduler,         TASK_SCHEDULER_P,    	 4);
   OSCreateTask(task_Vand,              TASK_VAND_P,              4);
@@ -92,18 +93,18 @@ int main() {
   OSCreateBinSem(RSRC_USB_MHX_IF_P, 1);    // Initially available
   OSCreateSem(SEM_CMD_CHAR_P,       0);    // No chars received yet
   OSCreateBinSem(BINSEM_HEON_P,0); //This is set in task_externalcmdsMHX.
-  OSCreateMsg(MSG_GETLINES_P,(OStypeMsgP) 0);
-  OSCreateMsg(MSG_EDITCMDSCH_P,(OStypeMsgP) 0);
-  OSCreateBinSem(BINSEM_DEPLOYED_P,   0); 
+  OSCreateBinSem(BINSEM_DEPLOYED_P,   0);
   OSCreateBinSem(BINSEM_EJECTED_P,   0); 
   OSCreateBinSem(BINSEM_BURNCIRCUIT_P,   0); 
-  OSCreateMsg(MSG_SDR_P, (OStypeMsgP) 0);
-  OSCreateMsg(MSG_HETOSDCARD_P, (OStypeMsgP) 0);
   OSCreateBinSem(BINSEM_RAISEPOWERLEVEL_P, 0);
   OSCreateBinSem(BINSEM_CLEAR_TO_SEND_P, 0);
   OSCreateBinSem(BINSEM_SEND_BEACON_P, 0);
   OSCreateBinSem(BINSEM_VUC_TURN_ON_P, 0);
   OSCreateBinSem(BINSEM_VUC_TURN_OFF_P, 0);
+    OSCreateMsg(MSG_SDR_P, (OStypeMsgP) 0);
+    OSCreateMsg(MSG_HETOSDCARD_P, (OStypeMsgP) 0);
+    OSCreateMsg(MSG_GETLINES_P,(OStypeMsgP) 0);
+    OSCreateMsg(MSG_EDITCMDSCH_P,(OStypeMsgP) 0);
   
 
 	//Init SD-Card
@@ -112,7 +113,7 @@ int main() {
 	f_initvolume();
 
 	//In file: 1=>just deployed, 2=>just ejected, 3=>both deployed and ejected true.
-	F_FILE * Deployed_Ejected_SDSave = f_open("DEPEJEC","r");
+	F_FILE * Deployed_Ejected_SDSave = f_open(STATE_FILE,"r");
 	if(Deployed_Ejected_SDSave) {
 			/*
 			f_close(Deployed_Ejected_SDSave);
@@ -148,7 +149,7 @@ int main() {
 		f_close(Deployed_Ejected_SDSave);
 	}
 	else { //Create New File.
-		Deployed_Ejected_SDSave = f_open("DEPEJEC","w");
+		Deployed_Ejected_SDSave = f_open(STATE_FILE,"w");
 		char SD_SAVESTATE[1];
 		SD_SAVESTATE[0]=0;
 		f_write(SD_SAVESTATE,1,1,Deployed_Ejected_SDSave);

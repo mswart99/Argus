@@ -382,7 +382,7 @@ void CMDS(char a[], char * saveName) {
 			} else if (a[3] == 'R') { // Download the entire RSSI file
 				strcpy(fName, "RSSI");
 			} else if (a[3] == 'D') { // Download the entire DEPEJEC file
-				strcpy(fName, "DEPEJEC");
+				strcpy(fName, STATE_FILE);
 			} else if (a[3] == 'C') { // Download the entire CONFIG file
 				strcpy(fName, "CONFIG");
 			} else if (a[3] == 'N') { // Download the entire CONFIG file
@@ -498,7 +498,7 @@ void CMDS(char a[], char * saveName) {
 			OSTryBinSem(BINSEM_EJECTED_P);
 
 			//In file: 1=>just deployed, 2=>just ejected, 3=>both deployed and ejected true, 0=>Neither are true.
-			F_FILE * Deployed_Ejected_SDSave = f_open("DEPEJEC","w");
+			F_FILE * Deployed_Ejected_SDSave = f_open(STATE_FILE,"w");
 			if(Deployed_Ejected_SDSave) {
 				char tmp[1]={0};
 				f_write(tmp,1,1,Deployed_Ejected_SDSave);
@@ -880,7 +880,8 @@ void task_externalcmds(void) {
 	static unsigned int i=0;
 	while(1) {
 		OS_Delay(250);
-		int waitTmp=1; //ENTER: Will wait until something is received, and store it in a.
+        // ARGUS IS NOT LISTENING
+		int waitTmp=0; //ENTER: Will wait until something is received, and store it in a.
 		while(waitTmp) {
 			OS_Delay(20);
 			waitTmp=1;
