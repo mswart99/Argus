@@ -870,8 +870,9 @@ void CMDS(char a[], char * saveName) {
     }//ECHO
 
 	//At this point, no command has been recognized, as it would have returned if it had been.
-	csk_uart0_puts("task_externalcmds:\tCommand NOT Recognized\r\n");
-	BroadcastOrSave("task_externalcmds:\tCommand NOT Recognized\r\n", saveName);
+	sprintf(strTmp, "%s%s", COMMAND_NO_JOY, a);
+	csk_uart0_puts(strTmp);
+	BroadcastOrSave(strTmp, saveName);
 //	HeTrans255Str(a);
 }
 

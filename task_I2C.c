@@ -24,7 +24,6 @@ $Date: 2009-11-02 00:45:07-08 $
 // Pumpkin Salvo headers
 #include "salvo.h"
 
-static unsigned int ADCData[NUM_ADC_CHANNELS]={0};
 static int I2CSPEED=78; 	// I2CSPEED = 18 at 8Mhz for 400kHz I2C clock, or 78-->100kHz, or etc.
 //--------------------------Begin I2C protocols.-----------------------------------------
 //--------------------------Begin imported I2C protocols.--------------------------------
@@ -370,13 +369,13 @@ char * i2c_SnR_v2(int address, char sending[], int numSend, int numRec,
 
 /* Returns the ADC array 
  */
-unsigned int* i2c_getADC() {
-    return ADCData;
-}
+//unsigned int* i2c_getADC() {
+//    return ADCData;
+//}
 
-unsigned int i2c_getThisADCchannel(int channelID) {
-	return(ADCData[channelID]);
-}
+//unsigned int i2c_getThisADCchannel(int channelID) {
+//	return(ADCData[channelID]);
+//}
 
 void task_I2C(void) {
 	//***BEGIN Fix I2C startup***
@@ -409,56 +408,13 @@ void task_I2C(void) {
 //	reset_i2c_bus();
 //	int i = 0;
 //	for(i=0;i<1000;i++) Nop();
-	unsigned char data;
-	unsigned int count, i;
-	TRISE|=BIT9; //Set MISO As input. Outputs are default.
-	SCLK_LOW;
-	CS1_HIGH; //Active Low
-	CS2_HIGH; //Active Low
+
 
 	while(1) {
 		OS_Delay(250);
 		OS_Delay(250);
 		OS_Delay(250);
 		OS_Delay(100);
-	}
-	while(1) {
-		//=============Begin Atmega Interface=============
-		CS1_LOW;
-		OS_Delay(20);
-
-		for(data=0;data<8;data++) { //ADC-Reads (10-Bits)
-			ADCData[data]=0;
-			for(count=0;count<10;count++) { //Bits
-				SCLK_HIGH;
-				for(i=0;i<SCLK_DELAY;i++) Nop(); //Delay
-				ADCData[data]|=(MISO<<count);
-				SCLK_LOW;
-				for(i=0;i<SCLK_DELAY;i++) Nop(); //Delay
-			}
-//			sprintf(final,"%s%03X ",final,ADCData[data]);
-		}
-	
-		CS1_HIGH; 
-		OS_Delay(100);
-
-		CS2_LOW;
-		// Without this delay, ADC is read incorrectly
-		OS_Delay(20);	
-		for(data=8;data<16;data++) { //ADC-Reads (10-Bits)
-			ADCData[data]=0;
-			for(count=0;count<10;count++) { //Bits
-				SCLK_HIGH;
-				for(i=0;i<SCLK_DELAY;i++) Nop(); //Delay
-				ADCData[data]|=(MISO<<count);
-				SCLK_LOW;
-				for(i=0;i<SCLK_DELAY;i++) Nop(); //Delay
-			}
-//			sprintf(final,"%s%03X ",final,ADCData[data]);
-		}
-
-		CS2_HIGH;
-		//==============End Atmega Interface==============
 	}
 } /* task_I2C() */
 

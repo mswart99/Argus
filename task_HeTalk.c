@@ -27,9 +27,9 @@ $Date: 2009-11-02 00:45:07-08 $
 // Pumpkin Salvo headers
 #include "salvo.h"
 //extern char* CMDS (char a[], char * saveName);
-//extern void RSSI_setTelem(char *a, int startPos);
-//extern void RSSI_setConfigRecent(char *a, int startPos);
-//extern long long getMissionClock(void);
+extern void RSSI_setTelem(char *a, int startPos);
+extern void RSSI_setConfigRecent(char *a, int startPos);
+extern void getMissionClockString(char *a);
 
 void HeCkSum(char* buffer, int n) {
 	//This will add two bytes to the end of buffer.
@@ -90,15 +90,15 @@ char HeTrans255Str(char* inpt) {
 	return(HeTrans255(inpt, n));
 }
 
-void setRSSISave(char zeroOrOne) {
-	saveRSSIOnly=zeroOrOne;
-}
-
 //Three ways to save, to avoid collisions.
 static char HeSaveData[10]; //char, filename.
 static char HeSaveData2[10]; //char, filename.
 static char HeSaveData3[10]; //char, filename.
 static char saveRSSIOnly=0;
+
+void setRSSISave(char zeroOrOne) {
+	saveRSSIOnly=zeroOrOne;
+}
 
 void setHeSaveData(char* a) {
 	int i;
@@ -121,9 +121,7 @@ void HeBroadcastOrSave(char* a, int num) {
 	if(HeSaveData[0]==a[3]) { // Handle Telemetry requests (RSSI or full telem)
 		F_FILE* aFile=f_open(((char*) (HeSaveData))+1,"a");
 		// Time stamp
-		unsigned long long mc=getMissionClock();
-		if(mc>=999999999) mc=999999999;
-		sprintf(strTmp,"%09llu",mc);
+		getMissionClockString(strTmp);
 		f_write(strTmp,1,9,aFile);
 		if(saveRSSIOnly) {
 			f_write(a+15,1,1,aFile);

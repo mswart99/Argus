@@ -34,7 +34,7 @@ extern void VUC_getRunState(char* dat);
 extern void	VUC_getStatus(char *dat);
 extern void VUC_getTime(char* dat);
 
-extern void getMissionClock(char* array);
+extern void getMissionClockString(char* array);
 extern char* RSSI_getTelem(int charOrAscii);
 extern char* RSSI_getConfig(int charOrAscii);
 extern char* VUC_getStoredTelem(int charOrAscii);
@@ -103,10 +103,14 @@ static char vucrun[2], vucstat[2], vutime[6];
 static char final[400];
 static unsigned int beaconWaitCounts[3];
 static int frameID;
+static unsigned int ADCData[NUM_ADC_CHANNELS]={0};
 
 void task_beacon(void) {
 //	unsigned char data;
-	unsigned int i; //count, i;
+//	unsigned int i; //count, i;
+	unsigned char data;
+	unsigned int count, i;
+
 //	F_FILE * BeaconFile;
 //	char* tmpChar;
 //	char tmpStr[2*CONFIG_LEN];
@@ -116,7 +120,11 @@ void task_beacon(void) {
     for (i=1; i <= BEACON_NUM_FRAMES; i++) {
         beaconWaitCounts[i] = beaconFrameIntervals[i]*(i-1)/BEACON_NUM_FRAMES;
     }
-    
+    TRISE|=BIT9; //Set MISO As input. Outputs are default.
+	SCLK_LOW;
+	CS1_HIGH; //Active Low
+	CS2_HIGH; //Active Low
+	
 	while (1) {
 		// Check the clock
 		if (beaconWaitCounts[0] < beaconFrameIntervals[0]) {
@@ -153,6 +161,42 @@ void task_beacon(void) {
             
            // ======================= Switch on frame ID
 			if (frameID == 0) {
+		//=============Begin Atmega Interface=============
+		CS1_LOW;
+		OS_Delay(20);
+
+		for(data=0;data<8;data++) { //ADC-Reads (10-Bits)
+			ADCData[data]=0;
+			for(count=0;count<10;count++) { //Bits
+				SCLK_HIGH;
+				for(i=0;i<SCLK_DELAY;i++) Nop(); //Delay
+				ADCData[data]|=(MISO<<count);
+				SCLK_LOW;
+				for(i=0;i<SCLK_DELAY;i++) Nop(); //Delay
+			}
+			sprintf(final,"%s%03X ",final,ADCData[data]);
+		}
+	
+		CS1_HIGH; 
+		OS_Delay(20);
+
+		CS2_LOW;
+		// Without this delay, ADC is read incorrectly
+		OS_Delay(20);	
+		for(data=8;data<16;data++) { //ADC-Reads (10-Bits)
+			ADCData[data]=0;
+			for(count=0;count<10;count++) { //Bits
+				SCLK_HIGH;
+				for(i=0;i<SCLK_DELAY;i++) Nop(); //Delay
+				ADCData[data]|=(MISO<<count);
+				SCLK_LOW;
+				for(i=0;i<SCLK_DELAY;i++) Nop(); //Delay
+			}
+			sprintf(final,"%s%03X ",final,ADCData[data]);
+		}
+
+		CS2_HIGH;
+		//==============End Atmega Interface==============
 //				sprintf(final, "%s %s ", final, 
 //					asciified3Array(i2c_getADC(), NUM_ADC_CHANNELS));
 

@@ -25,8 +25,18 @@ $Date: 2009-11-02 00:45:07-08 $
 #include "salvo.h"
 #include "csk_sd.h"
 #include "thin_usr.h"
+
 //extern void CMDS (char a[], char * saveName);
 #define MAX_ASCII_ARRAY	300
+
+extern unsigned char i2c_read_ack(void);
+extern unsigned char i2c_read_nack(void);
+extern char send_i2c_byte(int data);
+extern void reset_i2c_bus(void);
+extern void i2c_restart(void);
+extern void i2c_start(void);
+
+
 static char asciiA[MAX_ASCII_ARRAY];	// Maximum size of asciified array
 // -----------------------------------------------------
 // I don't know where else to put these utilities -MAS
@@ -101,6 +111,35 @@ char* asciified3ArrayNoSpace(unsigned int *a, int aLen) {
     return(asciiA);
 }
 //--------------------------------------------------------
+
+void timeStamp(char* aString) {
+		char a[21];
+		unsigned char outpt[8];
+		long i;
+
+		//Grab time registers from RTC.
+		i2c_start();
+		send_i2c_byte((0x68<<1));
+		send_i2c_byte(0x00);
+		i2c_restart();
+		send_i2c_byte((0x68<<1)+1);
+		for(i=0;i<7;i++) outpt[i]=i2c_read_ack();
+		outpt[7]=i2c_read_nack();
+		reset_i2c_bus();
+		for(i=0;i<100;i++) Nop();
+
+		//Zero out unknown bits.
+		outpt[1]=outpt[1]&0b01111111;
+		outpt[2]=outpt[2]&0b01111111;
+		outpt[3]=outpt[3]&0b00111111;
+		//outpt[4] will be ignored.
+		outpt[5]=outpt[5]&0b00111111;
+		outpt[6]=outpt[6]&0b00011111;
+
+		sprintf(a," %02X:%02X:%02X.%02X %02X/%02X/20%02X",outpt[3],outpt[2],outpt[1],outpt[0],outpt[5],outpt[6],outpt[7]);
+		strcat(aString,a);
+		//sprintf(aString,"%s%s",aString,a);
+}
 
 static unsigned long long missionclock;
 unsigned long long getMissionClock() {

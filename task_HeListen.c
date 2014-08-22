@@ -28,6 +28,7 @@ $Date: 2009-11-02 00:45:07-08 $
 #include "salvo.h"
 extern char* CMDS (char a[], char * saveName);
 extern void HeBroadcastOrSave(char* a, int num);
+extern char HeTrans255Str(char *a);
 
 // MYCALL and UNPROTO are used to authenticate the call sign
 // The "2*" is needed because the AX.25 header are unsigned
@@ -52,7 +53,7 @@ int callsignCheck(char* a, int startPos) {
 	return(1);
 }
 
-void task_externalcmdsMHX(void) {
+void task_HeListen(void) {
   	static char a[400];
   	static unsigned char check;
   	static unsigned int pos;
@@ -109,6 +110,7 @@ void task_externalcmdsMHX(void) {
 								//Checking the callsign above
 								a[size-3]=0;
 OS_Delay(10);								
+HeTrans255Str("KHAAAAAAAAN!");
 								CMDS(((char*) (a))+16,0);
 							}
 						} 
