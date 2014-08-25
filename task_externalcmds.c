@@ -339,6 +339,7 @@ void CMDS(char a[], char * saveName) {
 	
 	// SD commands deal with reading/writing to the SD card
 	if (a[0] == 'S' && a[1] == 'D') {
+HeTrans255Str("KHAAAAAAN!");
 		if (a[2] == 'S') { // SDS gets file size
 			/* Expects SDSname, where name is file name (max 8 chars)
 			 */
@@ -870,9 +871,10 @@ void CMDS(char a[], char * saveName) {
     }//ECHO
 
 	//At this point, no command has been recognized, as it would have returned if it had been.
-	sprintf(strTmp, "%s%s", COMMAND_NO_JOY, a);
-	csk_uart0_puts(strTmp);
-	BroadcastOrSave(strTmp, saveName);
+	char tmps[80];
+	sprintf(tmps, "%s{%s}", COMMAND_NO_JOY, a);
+	csk_uart0_puts(tmps);
+	BroadcastOrSave(tmps, saveName);
 //	HeTrans255Str(a);
 }
 
@@ -881,8 +883,7 @@ void task_externalcmds(void) {
 	static unsigned int i=0;
 	while(1) {
 		OS_Delay(250);
-        // ARGUS IS NOT LISTENING
-		int waitTmp=0; //ENTER: Will wait until something is received, and store it in a.
+ 		int waitTmp=1; //ENTER: Will wait until something is received, and store it in a.
 		while(waitTmp) {
 			OS_Delay(20);
 			waitTmp=1;

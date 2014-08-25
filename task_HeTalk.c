@@ -120,6 +120,7 @@ void setHeSaveData3(char* a) {
 void HeBroadcastOrSave(char* a, int num) {
 	if(HeSaveData[0]==a[3]) { // Handle Telemetry requests (RSSI or full telem)
 		F_FILE* aFile=f_open(((char*) (HeSaveData))+1,"a");
+		char strTmp[32];
 		// Time stamp
 		getMissionClockString(strTmp);
 		f_write(strTmp,1,9,aFile);

@@ -233,7 +233,7 @@ void task_beacon(void) {
 
 //           int n;
 			// Finish it off
-//			sprintf(final,"%s%s\r\n%n",final, BEACON_END, &n);
+			sprintf(final,"%s%s",final, BEACON_END);
 			// Send
 			HeTrans255Str(final);
 			// Write to file and stdout
