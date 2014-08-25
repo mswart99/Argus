@@ -40,7 +40,7 @@ $Date: 2010-03-28 19:40:15-08 $
 #include "thin_usr.h"
 
 csk_status_t csk_status;
-char strTmp[80];                  // usable to anyone who wants it ...
+//char strTmp[80];                  // usable to anyone who wants it ...
 
 
 /******************************************************************************
@@ -91,7 +91,7 @@ int main() {
   //OSCreateTask(task_5sec,              TASK_5SEC_P,              9);
 
   // Create events.
-  OSCreateBinSem(RSRC_USB_MHX_IF_P, 1);    // Initially available
+//  OSCreateBinSem(RSRC_USB_MHX_IF_P, 1);    // Initially available
   OSCreateSem(SEM_CMD_CHAR_P,       0);    // No chars received yet
   OSCreateBinSem(BINSEM_HEON_P,0); //This is set in task_externalcmdsMHX.
   OSCreateBinSem(BINSEM_DEPLOYED_P,   0);
@@ -103,9 +103,9 @@ int main() {
   OSCreateBinSem(BINSEM_VUC_TURN_ON_P, 0);
   OSCreateBinSem(BINSEM_VUC_TURN_OFF_P, 0);
     OSCreateMsg(MSG_SDR_P, (OStypeMsgP) 0);
-    OSCreateMsg(MSG_HETOSDCARD_P, (OStypeMsgP) 0);
-    OSCreateMsg(MSG_GETLINES_P,(OStypeMsgP) 0);
-    OSCreateMsg(MSG_EDITCMDSCH_P,(OStypeMsgP) 0);
+//    OSCreateMsg(MSG_HETOSDCARD_P, (OStypeMsgP) 0);
+//    OSCreateMsg(MSG_GETLINES_P,(OStypeMsgP) 0);
+//    OSCreateMsg(MSG_EDITCMDSCH_P,(OStypeMsgP) 0);
   
 
 	//Init SD-Card

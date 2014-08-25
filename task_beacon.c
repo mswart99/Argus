@@ -101,6 +101,7 @@ void setBeaconFrameIntervals(unsigned int *nums) {
 
 static char vucrun[2], vucstat[2], vutime[6];
 static char final[400];
+static char tmp[30];
 static unsigned int beaconWaitCounts[3];
 static int frameID;
 static unsigned int ADCData[NUM_ADC_CHANNELS]={0};
@@ -154,10 +155,10 @@ void task_beacon(void) {
 			int states = OSReadBinSem(BINSEM_DEPLOYED_P) + 2*OSReadBinSem(BINSEM_EJECTED_P)
                 + 8*OSReadBinSem(BINSEM_BURNCIRCUIT_P) + 4*OSReadBinSem(BINSEM_CLEAR_TO_SEND_P);
             // Base frame: Mission_Clock [ADCs] VUC_Data Real_Time_Clock
-            getMissionClockString(strTmp);
+            getMissionClockString(tmp);
 
 		 	sprintf(final, "%s%02X%02X%02X%02X %s ", BEACON_START, SC_ID,
-				OS_VERSION, states, frameID, strTmp);
+				OS_VERSION, states, frameID, tmp);
             
            // ======================= Switch on frame ID
 			if (frameID == 0) {
@@ -230,19 +231,19 @@ void task_beacon(void) {
                 sprintf(final, "%s %s", final, RSSI_getTelem(2));
             }
 
-            int n;
+//           int n;
 			// Finish it off
-			sprintf(final,"%s%s\r\n%n",final, BEACON_END, &n);
+//			sprintf(final,"%s%s\r\n%n",final, BEACON_END, &n);
 			// Send
 			HeTrans255Str(final);
 			// Write to file and stdout
-			char BeaconFilename[]=BEACON_FILE_NAME;
-			F_FILE * BeaconFile=f_open(BeaconFilename,"a");
+//			char BeaconFilename[]=BEACON_FILE_NAME;
+			F_FILE * BeaconFile=f_open(BEACON_FILE_NAME,"a");
 			f_write(final,1,strlen(final),BeaconFile);
 			f_close(BeaconFile);
 	
 			csk_uart0_puts("\r\n");
-			sprintf(final,"%s%d\r\n",final,n);
+//			sprintf(final,"%s%d\r\n",final,n);
 			csk_uart0_puts(final);			
 		} /* End BEACON_SEND semaphore check */	
 	}	/* End while(1) */

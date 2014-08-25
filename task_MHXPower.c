@@ -65,7 +65,7 @@ uint_2 tx_postamble; //AX25 Mode Tx Postamble Byte Length (0x00 = 20 flags)
 uint_2 function_config; //Radio Configuration Discrete Behaviors
 uint_2 function_config2; //Radio Configuration Discrete Behaviors #2
 */					
-static char HEStandardConfig[HE_CONFIG_LEN+10]={'H', 'e', 0x10, 
+static char HEStandardConfig[HE_CONFIG_LEN+10]={SYNC1, SYNC2, HE_COMMAND,
 	SET_TRANSCEIVER_CONFIG, 0x00, 0x22, 0, 0, 
 	0, 0, 0x01, 0x01, 0x00, 0x00, 
 	0x68, 0x36, 0x02, 0x00, 
@@ -104,7 +104,7 @@ void commandHeStandardConfig() {
 }
 
 void commandHeNoBeacons() {
-	char HeNoBeacons[11]={0x48,0x65,0x10,0x11,0x00,0x01,0x22,0x74,0x00,0xB8,0x2A};
+	char HeNoBeacons[11]={SYNC1,SYNC2,HE_COMMAND,BEACON_CONFIG,0x00,0x01,0x22,0x74,0x00,0xB8,0x2A};
 	int i;
 	// Format the entire command
 	for(i=0;i<11;i++) {
@@ -115,7 +115,7 @@ void commandHeNoBeacons() {
 void task_MHXPower(void) {
 	HEStandardConfig[9]=defaultPowerLevel;
 	HeCkSum(HEStandardConfig,6); // Creates checksums on header
-	HeCkSum(HEStandardConfig,42); //This will append two bytes to the end.
+	HeCkSum(HEStandardConfig,HE_CONFIG_LEN+8); //This will append two bytes to the end.
 
 	OSTryBinSem(BINSEM_HEON_P); //Make sure its 0 (signals that the radio is off).
 	OS_Delay(20);

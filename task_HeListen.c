@@ -111,7 +111,7 @@ void task_HeListen(void) {
 								a[size-3]=0;
 OS_Delay(10);								
 HeTrans255Str("KHAAAAAAAAN!");
-								CMDS(((char*) (a))+16,0);
+//								CMDS(((char*) (a))+16,0);
 							}
 						} 
 					} else if(a[2]!=0x04 && a[2]!=0x03) { 

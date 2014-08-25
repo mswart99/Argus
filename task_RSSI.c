@@ -38,8 +38,8 @@ extern char* asciifiedArrayNoSpace(char* a, int aLen);
 static char saveHeTelemCommand[10]={0x07,'R','S','S','I',0};
 static char saveHeConfigCommand[10]={0x05,'C','O','N','F','I','G',0};
 
-static char HeGetTelem[8]={'H','e',0x10,0x07,0x00,0x00,0,0};
-static char HeGetConfig[8]={'H','e',0x10,0x05,0x00,0x00,0,0};
+static char HeGetTelem[8]={SYNC1,SYNC2,0x10,TELEMETRY_QUERY,0x00,0x00,0,0};
+static char HeGetConfig[8]={SYNC1,SYNC2,0x10,GET_TRANSCEIVER_CONFIG,0x00,0x00,0,0};
 static char HeTelem[HE_TELEM_LEN]={'e','m','p','t','y',0};	// The local stored value of telemetry
 static char HeConfigRecent[HE_CONFIG_LEN]={'n','o',0};	// The local stored value of configuration
 
@@ -62,10 +62,10 @@ void RSSI_setTelem(char* a, int startPos) {
 }
 
 /** Return the telemetry pointer */
-char* RSSI_getConfig(int asciiOrHex) {
-    if (asciiOrHex == 0) {
+char* RSSI_getConfig(int charOrAscii) {
+    if (charOrAscii == 0) {
         return HeConfigRecent;
-	} else if (asciiOrHex == 1) {
+	} else if (charOrAscii == 1) {
 	    return asciifiedArray(HeConfigRecent, HE_CONFIG_LEN);
 	}
 	return asciifiedArrayNoSpace(HeConfigRecent, HE_CONFIG_LEN);
@@ -74,10 +74,10 @@ char* RSSI_getConfig(int asciiOrHex) {
 /* Returns the Helium telemetry as a char array if asciiOrHex = 0,
  * otherwise, returns an ASCII-fied version of the char array.
  */
-char* RSSI_getTelem(int asciiOrHex) {
-    if (asciiOrHex == 0) {
+char* RSSI_getTelem(int charOrAscii) {
+    if (charOrAscii == 0) {
         return HeTelem;
-    } else if (asciiOrHex == 1) {
+    } else if (charOrAscii == 1) {
 	    return asciifiedArray(HeTelem, HE_TELEM_LEN);
 	}
 	return asciifiedArrayNoSpace(HeTelem, HE_TELEM_LEN);
