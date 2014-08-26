@@ -74,7 +74,7 @@ int main() {
 	* 8=I2C init
 	* 9=Debugging/does nothing
 	*/
-  // Create tasks.
+  // Create tasks -- MAKE SURE THAT OSTASKS in salvocfg.h IS LARGE ENOUGH!
   OSCreateTask(task_missionclock,	   TASK_MISSIONCLOCK_P,		 1);
   OSCreateTask(task_HeListen,          TASK_HELISTEN_P,          2);
   OSCreateTask(task_HeTalk,            TASK_HETALK_P,            3);
@@ -106,7 +106,10 @@ int main() {
 //    OSCreateMsg(MSG_HETOSDCARD_P, (OStypeMsgP) 0);
 //    OSCreateMsg(MSG_GETLINES_P,(OStypeMsgP) 0);
 //    OSCreateMsg(MSG_EDITCMDSCH_P,(OStypeMsgP) 0);
-  
+  // Create message queues
+  OSgltypeMsgQP MsqQBuff[SIZEOF_HE_MSGQ]
+  OSCreateMsgQ(MSGQ_HETX_P, MQCBP_HETX_P, MsgQBuff, SIZEOF_HE_MSGQ);
+    
 
 	//Init SD-Card
 	csk_sd_pwr_on();

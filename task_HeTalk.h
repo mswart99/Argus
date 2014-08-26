@@ -24,6 +24,8 @@ extern void task_HeTalk(void);
 // Symbols, etc.
 #define STR_TASK_HETALK "task_HeTalk: " STR_1TAB
 
+// Number of messages that can sit in the queue
+#define SIZEOF_HE_MSGQ 16
 
 #endif /* __task_HeTalk_h */
 

@@ -71,6 +71,8 @@ extern csk_status_t csk_status;
 #define BINSEM_VUC_TURN_ON_P	  OSECBP(11)
 #define BINSEM_VUC_TURN_OFF_P	  OSECBP(12)
 #define MSG_EDITCMDSCH_P   		  OSECBP(13)
+#define MSGQ_HETX_P               OSECBP(14)
+#define MQCBP_HETX_P               OSMQCBP(1)
 #endif /* __main_h */
 
 

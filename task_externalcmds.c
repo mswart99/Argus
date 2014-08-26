@@ -170,16 +170,19 @@ void CMDS(char a[], char * saveName) {
 		/*Resets the Helium radio
 		*/
 		
-		char HeOut[50]={'H', 'e', 0x10, 0x02, 0, 0x01, 0,0};
-		int i;
+		char HeOut[8]={SYNC1, SYNC2, HE_COMMAND, RESET_SYSTEM, 0, 0, 0,0};
+//		int i;
 		HeCkSum(HeOut,6); // Formats the header checksum
-		HeCkSum(HeOut,8); // Formats the payload checksum, and appends two bytes to the end.
+        // Since there is no payload, there is no need to run the second checksum
+//		HeCkSum(HeOut,8); // Formats the payload checksum, and appends two bytes to the end.
 	
 		// We cannot act until the TX line is clear
-		OS_WaitBinSem(BINSEM_CLEAR_TO_SEND_P, OSNO_TIMEOUT);
-		for(i=0;i<10;i++) {
-			csk_uart1_putchar(HeOut[i]);
-		}
+//		OS_WaitBinSem(BINSEM_CLEAR_TO_SEND_P, OSNO_TIMEOUT);
+        OSSignalMsgQ(MSGQ_HETX_P, (OStypeMsgP) &HeOut);
+
+//		for(i=0;i<10;i++) {
+//			csk_uart1_putchar(HeOut[i]);
+//		}
 		return;
 	}//RHE
 
@@ -533,6 +536,7 @@ HeTrans255Str("KHAAAAAAN!");
 		/* Expects HPASxx...
 		HPAS = Command block
 		xx...=The data you are sending, in ASCII encoded HEX,up to 256 bytes (xx=one byte)
+         Note that you are on your own for correctly-formatting the command!
 		*/
 		long i;
 		int newSizeOfa=0;
@@ -544,11 +548,14 @@ HeTrans255Str("KHAAAAAAN!");
 			a[newSizeOfa]=makeHex(a[i],a[i+1]);
 			newSizeOfa++;
 		}
-		for(i=0;i<100000;i++) Nop();
+        
+//		for(i=0;i<100000;i++) Nop();
 		// We cannot act until the TX line is clear
-		OS_WaitBinSem(BINSEM_CLEAR_TO_SEND_P, OSNO_TIMEOUT);
-		for(i=0;i<newSizeOfa;i++) csk_uart1_putchar(a[i]);
-		for(i=0;i<100000;i++) Nop();
+//		OS_WaitBinSem(BINSEM_CLEAR_TO_SEND_P, OSNO_TIMEOUT);
+        OSSignalMsgQ(MSGQ_HETX_P, (OStypeMsgP) &a);
+
+//		for(i=0;i<newSizeOfa;i++) csk_uart1_putchar(a[i]);
+//		for(i=0;i<100000;i++) Nop();
 		return;
 	}
 

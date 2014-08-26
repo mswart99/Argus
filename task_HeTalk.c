@@ -26,6 +26,7 @@ $Date: 2009-11-02 00:45:07-08 $
 
 // Pumpkin Salvo headers
 #include "salvo.h"
+
 //extern char* CMDS (char a[], char * saveName);
 extern void RSSI_setTelem(char *a, int startPos);
 extern void RSSI_setConfigRecent(char *a, int startPos);
@@ -64,15 +65,18 @@ char HeTrans255(char* inpt, int n) {
 		
 		HeCkSum(HeOut,6); //This will append two bytes to the end.
 		
-		int i=0;
-		// Copy the payload data into the buffer (avoids messing with input pointer)
-		while(i<n) {
-			HeOut[i+8]=inpt[i]; //Copy Payload into buffer.
-			i++;
-		}
-		HeCkSum(HeOut,8+n); //This will append two bytes to the end.
-		for(i=0;i<(10+n);i++)
-				csk_uart1_putchar(HeOut[i]);
+        if (n > 0) {
+            int i=0;
+            // Copy the payload data into the buffer (avoids messing with input pointer)
+            while(i<n) {
+                HeOut[i+8]=inpt[i]; //Copy Payload into buffer.
+                i++;
+            }
+            HeCkSum(HeOut,8+n); //This will append two bytes to the end.
+        }
+        OSSignalMsgQ(MSGQ_HETX_P, (OStypeMsgP) &HeOut);
+//		for(i=0;i<(10+n);i++)
+//				csk_uart1_putchar(HeOut[i]);
 	} else { 
 		csk_uart0_puts("Failed Transmit, radio disabled.\r\n");
 		return 0;
@@ -162,12 +166,32 @@ void task_HeTalk(void) {
 //	static int DELAY1 = 15;
 //	static int DELAY2 = 600;
 //	OSSignalBinSem(BINSEM_CLEAR_TO_SEND_P);
+    static OStypeMsgP msgP;
+    static char* packet;
+    static unsigned char dataLength;
 
 	while(1) {
-        OS_Delay(250);
-
-		// We have finished everything we're checking for. Signal that
+        /* Wait forever for a message to transmit to the Helium. */
+        OS_WaitMsgQ(MSGQ_HETX_P, &msgP, OSNO_TIMEOUT);
+        /* A message has arrived. The sixth character is the length of the
+         * data payload. (Note that there's always 8 characters before
+         * the payload, and there are 2 characters after a payload of
+         * nonzero length.)
+         */
+        dataLength = (unsigned char) msgP[5] + 8;
+        if (dataLength > 8) {
+            // Add the two checksum bytes to the end
+            dataLength = dataLength + 2;
+        }
+        // Now, wait for the radio to be unoccupied
+        OS_WaitBinSem(BINSEM_CLEAR_TO_SEND_P);
+        // The first character is the
+        int i=0;
+        for (i=1; i <= dataLength; i++) {
+            csk_uart1_putchar(msP[i]);
+        }
+		// We have finished our time with the radio. Signal that
 		// it's clear to send
-//		OSSignalBinSem(BINSEM_CLEAR_TO_SEND_P);
+		OSSignalBinSem(BINSEM_CLEAR_TO_SEND_P);
 	}	// End while(1)
-} /* task_externalcmds() */
+} /* task_HeTalk() */

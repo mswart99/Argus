@@ -75,7 +75,7 @@ void task_HeListen(void) {
 		if(check) {
 			// This looks like a packet. Make sure that no one else is sending
 			// until we finish reading this one
-//			OSTryBinSem(BINSEM_CLEAR_TO_SEND_P);
+			OSTryBinSem(BINSEM_CLEAR_TO_SEND_P);
 			pos=0;
 			delay=0;
 			while(pos<7 && delay<DELAY1) {
@@ -159,4 +159,4 @@ OS_Delay(10);
 		// it's clear to send
 		OSSignalBinSem(BINSEM_CLEAR_TO_SEND_P);
 	}	// End while(1)
-} /* task_externalcmds() */
+} /* task_HeListen() */

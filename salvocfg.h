@@ -13,7 +13,7 @@ $Date: 2010-01-24 20:39:50-08 $
 #define OSUSE_LIBRARY        TRUE
 #define OSLIBRARY_TYPE       OSL
 #define OSLIBRARY_CONFIG     OST
-#define OSEVENTS             16
+#define OSEVENTS             14
 #define OSEVENT_FLAGS        0
-#define OSMESSAGE_QUEUES     0
-#define OSTASKS              17
+#define OSMESSAGE_QUEUES     1
+#define OSTASKS              12

@@ -42,6 +42,12 @@ extern void HeCkSum(char* buffer, int n);
 
 static unsigned char defaultPowerLevel=0x4B;
 static unsigned char highPowerLevel=0x87;
+
+static char setHePowerHigh[11]={SYNC1, SYNC2, HE_COMMAND, FAST_PA_SET,
+    0x00, 0x01, 0,0, highPowerLevel};
+static char setHePowerLow[11]={SYNC1, SYNC2, HE_COMMAND, FAST_PA_SET,
+    0x00, 0x01, 0,0, defaultPowerLevel};
+
 //Set all settings (Power, Callsigns, etc)
 //static char HEStandardConfig[44]={'H', 'e', 0x10, 0x06, 0x00, 0x22, 0, 0, 0x00, 0, 0x01, 0x01, 0x00, 0x00, 0x19, 0x3A, 0x02, 0x00, 0x32, 0xAC, 0x06, 0x00, 'C', 'O', 'P', 'P', 'E', 'R', 'S', 'L', 'U', 'G', 'N', 'D', 0x05, 0x00, 0x00, 0x00, 0x40, 0x00, 0x00, 0x00, 0, 0}; //145.945
 //static char HEStandardConfig[44]={'H', 'e', 0x10, 0x06, 0x00, 0x22, 0, 0, 0x00, 0, 0x01, 0x01, 0x00, 0x00, 0xEC, 0x39, 0x02, 0x00, 0x32, 0xAC, 0x06, 0x00, 'C', 'O', 'P', 'P', 'E', 'R', 'S', 'L', 'U', 'G', 'N', 'D', 0x05, 0x00, 0x00, 0x00, 0x40, 0x00, 0x00, 0x00, 0, 0}; //145.900
@@ -84,38 +90,52 @@ char* getHeConfig() {
 }
 
 void setHeDefaultPowerLevel(unsigned char pl) {
-	defaultPowerLevel=pl;
+    setHePowerLow[8]=pl;
+    // Reformat the checksum
+    HeCkSum(setHePowerLow,9); //This will append two bytes to the end.
 }
+
 void setHeHighPowerLevel(unsigned char pl) {
-	highPowerLevel=pl;
+//	highPowerLevel=pl;
+    setHePowerHigh[8]=pl;
+    // Reformat the checksum
+    HeCkSum(setHePowerHigh,9); //This will append two bytes to the end.
 }
 
 static unsigned int secsPowerHighAfterContact=20*60;
 static unsigned int count;
 
 void commandHeStandardConfig() {
+    OSSignalMsgQ(MSGQ_HETX_P, (OStypeMsgP) &HEStandardConfig);
 	// We cannot act until the TX line is clear
 //	OS_WaitBinSem(BINSEM_CLEAR_TO_SEND_P, OSNO_TIMEOUT);
-	int i=0;
+//	int i=0;
 	// Format the entire command
-	for(i=0;i<HE_CONFIG_LEN+10;i++) {
-		csk_uart1_putchar(HEStandardConfig[i]);
-	}
+//	for(i=0;i<HE_CONFIG_LEN+10;i++) {
+//		csk_uart1_putchar(HEStandardConfig[i]);
+//	}
 }
 
 void commandHeNoBeacons() {
 	char HeNoBeacons[11]={SYNC1,SYNC2,HE_COMMAND,BEACON_CONFIG,0x00,0x01,0x22,0x74,0x00,0xB8,0x2A};
-	int i;
-	// Format the entire command
-	for(i=0;i<11;i++) {
-		csk_uart1_putchar(HeNoBeacons[i]);
-	}	
+    OSSignalMsgQ(MSGQ_HETX_P, (OStypeMsgP) &HeNoBeacons);
+//	int i;
+//	// Format the entire command
+//	for(i=0;i<11;i++) {
+//		csk_uart1_putchar(HeNoBeacons[i]);
+//	}
 }
 
 void task_MHXPower(void) {
 	HEStandardConfig[9]=defaultPowerLevel;
+    // Format the commands with checksums
 	HeCkSum(HEStandardConfig,6); // Creates checksums on header
 	HeCkSum(HEStandardConfig,HE_CONFIG_LEN+8); //This will append two bytes to the end.
+    HeCkSum(setHePowerHigh,6);
+    HeCkSum(setHePowerHigh,9); //This will append two bytes to the end.
+    HeCkSum(setHePowerLow,6);
+    HeCkSum(setHePowerLow,9); //This will append two bytes to the end.
+
 
 	OSTryBinSem(BINSEM_HEON_P); //Make sure its 0 (signals that the radio is off).
 	OS_Delay(20);
@@ -179,25 +199,26 @@ void task_MHXPower(void) {
 		while(!OSReadBinSem(BINSEM_RAISEPOWERLEVEL_P)) {
 			OS_Delay(250);
 			if(count >= 960) { //40min
-				for(i=0;i<100000;i++) Nop();
+//				for(i=0;i<100000;i++) Nop();
+                OSSignalMsgQ(MSGQ_HETX_P, (OStypeMsgP) &HEStandardConfig);
+                
 				// We cannot act until the TX line is clear
-				OS_WaitBinSem(BINSEM_CLEAR_TO_SEND_P, OSNO_TIMEOUT);
-				for(i=0;i<44;i++) {
+//				OS_WaitBinSem(BINSEM_CLEAR_TO_SEND_P, OSNO_TIMEOUT);
+//				for(i=0;i<44;i++) {
 //					csk_uart1_putchar(HEStandardConfig[i]);
-				}
-				for(i=0;i<100000;i++) Nop();
+//				}
+//				for(i=0;i<100000;i++) Nop();
 				count=0;
 			}
 			count++;
 		}
 		OSTryBinSem(BINSEM_RAISEPOWERLEVEL_P);
-		char HePowerLevel[11]={SYNC1, SYNC2, HE_COMMAND, FAST_PA_SET,
-            0x00, 0x01, 0,0, highPowerLevel};
-		HeCkSum(HePowerLevel,6); 
-		HeCkSum(HePowerLevel,9); //This will append two bytes to the end.
-		for(i=0;i<11;i++) {
+        // Enforce high power Tx setting
+        OSSignalMsgQ(MSGQ_HETX_P, (OStypeMsgP) &setHePowerHigh);
+
+//		for(i=0;i<11;i++) {
 //			csk_uart1_putchar(HePowerLevel[i]);
-		}
+//		}
 		count=0;
 		while(count<secsPowerHighAfterContact) {
 			if(OSReadBinSem(BINSEM_RAISEPOWERLEVEL_P)) {
@@ -207,14 +228,17 @@ void task_MHXPower(void) {
 			OS_Delay(100);
 			count++;
 		}
-		char HePowerLevel2[11]={SYNC1, SYNC2, HE_COMMAND, FAST_PA_SET,
-            0x00, 0x01, 0,0,defaultPowerLevel};
-		HeCkSum(HePowerLevel2,6); 
-		HeCkSum(HePowerLevel2,9); //This will append two bytes to the end.
+        // Enforce low power Tx setting
+        OSSignalMsgQ(MSGQ_HETX_P, (OStypeMsgP) &setHePowerLow);
+
+//		char HePowerLevel2[11]={SYNC1, SYNC2, HE_COMMAND, FAST_PA_SET,
+//            0x00, 0x01, 0,0,defaultPowerLevel};
+//		HeCkSum(HePowerLevel2,6);
+//		HeCkSum(HePowerLevel2,9); //This will append two bytes to the end.
 		// We cannot act until the TX line is clear
-		OS_WaitBinSem(BINSEM_CLEAR_TO_SEND_P, OSNO_TIMEOUT);
-		for(i=0;i<11;i++) {
+//		OS_WaitBinSem(BINSEM_CLEAR_TO_SEND_P, OSNO_TIMEOUT);
+//		for(i=0;i<11;i++) {
 //			csk_uart1_putchar(HePowerLevel2[i]);
-		}		
+//		}
 	}//While(1)
 } /* task_MHXPower() */

@@ -90,10 +90,7 @@ char* RSSI_getTelem(int charOrAscii) {
 void askNSaveRSSI() {
 	setRSSISave(1);
 	setHeSaveData(saveHeTelemCommand);
-	int i;
-	for(i=0;i<8;i++) {
-		csk_uart1_putchar(HeGetTelem[i]);
-	}
+    OSSignalMsgQ(MSGQ_HETX_P, (OStypeMsgP) &HeGetTelem);
 }
 
 /** Sends the "get configuration" command to the Helium,
@@ -102,10 +99,7 @@ void askNSaveRSSI() {
  */
 void askNSaveConfig() {
 	setHeSaveData3(saveHeConfigCommand);
-	int i;
-	for(i=0;i<8;i++) {
-		csk_uart1_putchar(HeGetConfig[i]);
-	}
+    OSSignalMsgQ(MSGQ_HETX_P, (OStypeMsgP) &HeGetConfig);
 }
 
 void task_RSSI(void) {
@@ -120,29 +114,29 @@ void task_RSSI(void) {
   if(!OSReadBinSem(BINSEM_DEPLOYED_P)) {
 	  count=0;
 	  // Confirm configuration
-	  OS_WaitBinSem(BINSEM_CLEAR_TO_SEND_P, OSNO_TIMEOUT);
+//	  OS_WaitBinSem(BINSEM_CLEAR_TO_SEND_P, OSNO_TIMEOUT);
 	  askNSaveConfig();
 	  // Measure RSSI every half-second for the first 8 minutes
 	  while(count<8*2*60) {
 		OS_Delay(50);
-	    OS_WaitBinSem(BINSEM_CLEAR_TO_SEND_P, OSNO_TIMEOUT);
+//	    OS_WaitBinSem(BINSEM_CLEAR_TO_SEND_P, OSNO_TIMEOUT);
 		askNSaveRSSI();
 		count++;
 	  }
 	  // Continue measuring RSSI every 5 seconds until deployed
 	  while(!OSReadBinSem(BINSEM_DEPLOYED_P)) {
 		OS_Delay(250);OS_Delay(250);
-	    OS_WaitBinSem(BINSEM_CLEAR_TO_SEND_P, OSNO_TIMEOUT);
+//	    OS_WaitBinSem(BINSEM_CLEAR_TO_SEND_P, OSNO_TIMEOUT);
 		askNSaveRSSI();
 	  }	
   }
 
   while (1) {
     /** Get RSSI every minute, and configuration every 10 */
-	OS_WaitBinSem(BINSEM_CLEAR_TO_SEND_P, OSNO_TIMEOUT);
+//	OS_WaitBinSem(BINSEM_CLEAR_TO_SEND_P, OSNO_TIMEOUT);
 	askNSaveConfig();
 	for (count=0; count < 10; count++) {
-		OS_WaitBinSem(BINSEM_CLEAR_TO_SEND_P, OSNO_TIMEOUT);
+//		OS_WaitBinSem(BINSEM_CLEAR_TO_SEND_P, OSNO_TIMEOUT);
 		askNSaveRSSI();
 		for (i=0; i<24; i++) {
 			// Wait 2.5 seconds
