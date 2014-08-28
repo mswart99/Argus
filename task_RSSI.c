@@ -90,7 +90,7 @@ char* RSSI_getTelem(int charOrAscii) {
 void askNSaveRSSI() {
 	setRSSISave(1);
 	setHeSaveData(saveHeTelemCommand);
-    OSSignalMsgQ(MSGQ_HETX_P, (OStypeMsgP) &HeGetTelem);
+//    OSSignalMsgQ(MSGQ_HETX_P, (OStypeMsgP) &HeGetTelem);
 }
 
 /** Sends the "get configuration" command to the Helium,
@@ -99,7 +99,7 @@ void askNSaveRSSI() {
  */
 void askNSaveConfig() {
 	setHeSaveData3(saveHeConfigCommand);
-    OSSignalMsgQ(MSGQ_HETX_P, (OStypeMsgP) &HeGetConfig);
+//    OSSignalMsgQ(MSGQ_HETX_P, (OStypeMsgP) &HeGetConfig);
 }
 
 void task_RSSI(void) {

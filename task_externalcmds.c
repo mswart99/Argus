@@ -29,6 +29,7 @@ $Date: 2009-11-02 00:45:07-08 $
 
 // Other tasks
 #include "task_beacon.h"
+#include "helium.h"
 
 extern char * i2c_SnR(int address, char sending[], int numSend, int numRec, char charArrayOfAppropriateSize[], int asciiOrHex);
 //extern void i2c_sendz(char sending[]);
@@ -178,7 +179,7 @@ void CMDS(char a[], char * saveName) {
 	
 		// We cannot act until the TX line is clear
 //		OS_WaitBinSem(BINSEM_CLEAR_TO_SEND_P, OSNO_TIMEOUT);
-        OSSignalMsgQ(MSGQ_HETX_P, (OStypeMsgP) &HeOut);
+//        OSSignalMsgQ(MSGQ_HETX_P, (OStypeMsgP) &HeOut);
 
 //		for(i=0;i<10;i++) {
 //			csk_uart1_putchar(HeOut[i]);
@@ -552,7 +553,7 @@ HeTrans255Str("KHAAAAAAN!");
 //		for(i=0;i<100000;i++) Nop();
 		// We cannot act until the TX line is clear
 //		OS_WaitBinSem(BINSEM_CLEAR_TO_SEND_P, OSNO_TIMEOUT);
-        OSSignalMsgQ(MSGQ_HETX_P, (OStypeMsgP) &a);
+//        OSSignalMsgQ(MSGQ_HETX_P, (OStypeMsgP) &a);
 
 //		for(i=0;i<newSizeOfa;i++) csk_uart1_putchar(a[i]);
 //		for(i=0;i<100000;i++) Nop();
