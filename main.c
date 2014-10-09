@@ -107,7 +107,7 @@ int main() {
 //    OSCreateMsg(MSG_GETLINES_P,(OStypeMsgP) 0);
 //    OSCreateMsg(MSG_EDITCMDSCH_P,(OStypeMsgP) 0);
   // Create message queues
-  OSgltypeMsgQP MsqQBuff[SIZEOF_HE_MSGQ]
+  OSgltypeMsgQP MsqQBuff[SIZEOF_HE_MSGQ];
   OSCreateMsgQ(MSGQ_HETX_P, MQCBP_HETX_P, MsgQBuff, SIZEOF_HE_MSGQ);
     
 
