@@ -40,8 +40,8 @@ extern void csk_usb_close(void); // defined in csk_usb.c
 extern void HeCkSum(char* buffer, int n);
 //extern char HeTrans255Str(char* inpt);
 
-#define defaultPowerLevel 	0x4B
-#define highPowerLevel 		0x87
+static unsigned char defaultPowerLevel=0x4B;
+static unsigned char highPowerLevel=0x87;
 
 static char setHePowerHigh[11]={SYNC1, SYNC2, HE_COMMAND, FAST_PA_SET,
     0x00, 0x01, 0,0, highPowerLevel};
@@ -106,24 +106,24 @@ static unsigned int secsPowerHighAfterContact=20*60;
 static unsigned int count;
 
 void commandHeStandardConfig() {
-//    OSSignalMsgQ(MSGQ_HETX_P, (OStypeMsgP) &HEStandardConfig);
+    OSSignalMsgQ(MSGQ_HETX_P, (OStypeMsgP) &HEStandardConfig);
 	// We cannot act until the TX line is clear
 //	OS_WaitBinSem(BINSEM_CLEAR_TO_SEND_P, OSNO_TIMEOUT);
-	int i=0;
+//	int i=0;
 	// Format the entire command
-	for(i=0;i<HE_CONFIG_LEN+10;i++) {
-		csk_uart1_putchar(HEStandardConfig[i]);
-	}
+//	for(i=0;i<HE_CONFIG_LEN+10;i++) {
+//		csk_uart1_putchar(HEStandardConfig[i]);
+//	}
 }
 
 void commandHeNoBeacons() {
 	char HeNoBeacons[11]={SYNC1,SYNC2,HE_COMMAND,BEACON_CONFIG,0x00,0x01,0x22,0x74,0x00,0xB8,0x2A};
-//    OSSignalMsgQ(MSGQ_HETX_P, (OStypeMsgP) &HeNoBeacons);
-	int i;
+    OSSignalMsgQ(MSGQ_HETX_P, (OStypeMsgP) &HeNoBeacons);
+//	int i;
 //	// Format the entire command
-	for(i=0;i<11;i++) {
-		csk_uart1_putchar(HeNoBeacons[i]);
-	}
+//	for(i=0;i<11;i++) {
+//		csk_uart1_putchar(HeNoBeacons[i]);
+//	}
 }
 
 void task_MHXPower(void) {
@@ -200,7 +200,7 @@ void task_MHXPower(void) {
 			OS_Delay(250);
 			if(count >= 960) { //40min
 //				for(i=0;i<100000;i++) Nop();
-//                OSSignalMsgQ(MSGQ_HETX_P, (OStypeMsgP) &HEStandardConfig);
+                OSSignalMsgQ(MSGQ_HETX_P, (OStypeMsgP) &HEStandardConfig);
                 
 				// We cannot act until the TX line is clear
 //				OS_WaitBinSem(BINSEM_CLEAR_TO_SEND_P, OSNO_TIMEOUT);
@@ -214,7 +214,7 @@ void task_MHXPower(void) {
 		}
 		OSTryBinSem(BINSEM_RAISEPOWERLEVEL_P);
         // Enforce high power Tx setting
-//        OSSignalMsgQ(MSGQ_HETX_P, (OStypeMsgP) &setHePowerHigh);
+        OSSignalMsgQ(MSGQ_HETX_P, (OStypeMsgP) &setHePowerHigh);
 
 //		for(i=0;i<11;i++) {
 //			csk_uart1_putchar(HePowerLevel[i]);
@@ -229,7 +229,7 @@ void task_MHXPower(void) {
 			count++;
 		}
         // Enforce low power Tx setting
-//        OSSignalMsgQ(MSGQ_HETX_P, (OStypeMsgP) &setHePowerLow);
+        OSSignalMsgQ(MSGQ_HETX_P, (OStypeMsgP) &setHePowerLow);
 
 //		char HePowerLevel2[11]={SYNC1, SYNC2, HE_COMMAND, FAST_PA_SET,
 //            0x00, 0x01, 0,0,defaultPowerLevel};

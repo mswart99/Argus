@@ -75,7 +75,7 @@ void task_HeListen(void) {
 		if(check) {
 			// This looks like a packet. Make sure that no one else is sending
 			// until we finish reading this one
-//			OSTryBinSem(BINSEM_CLEAR_TO_SEND_P);
+			OSTryBinSem(BINSEM_CLEAR_TO_SEND_P);
 			pos=0;
 			delay=0;
 			while(pos<7 && delay<DELAY1) {
