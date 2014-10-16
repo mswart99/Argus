@@ -45,7 +45,8 @@ extern void VUC(char a[], int numSend, char returnArray[], int numRet);
 extern void VUCHex(char a[], int numSend, char returnArray[], int numRet);
 extern char HeTrans255Str(char* inpt);
 extern char HeTrans255(char* inpt, int n);
-extern void HeCkSum(char* buffer, int n);
+//extern void HeCkSum(char* buffer, int n);
+extern void resetHe();
 //extern char HeTrans255(char* inpt, int n);
 extern unsigned long long getMissionClock();
 extern void deleteSchedule(int num);
@@ -53,6 +54,7 @@ extern void getSchedule(int num, char* a);
 extern void setHeSaveData3(char* a);
 extern void setHeDefaultPowerLevel(unsigned char pl);
 extern void setHeHighPowerLevel(unsigned char pl);
+extern void setHePowerLevelNow(unsigned char pl);
 //extern void setBeacon2_5SecInterval(unsigned char num);
 extern void commandHeStandardConfig();
 extern char* getHeConfig();
@@ -117,16 +119,28 @@ void BroadcastOrSaveN(char a[], char * ptr, int num){
 
 static int ZEROCLOCKINT=0;
 static int IRONMANINT=0;
+static char ack[80];
 
 void CMDS(char a[], char * saveName) {
+	// When executing commands, we bump up the spacecraft TX power from low-power beacon to high-power downlink
 	OSSignalBinSem(BINSEM_RAISEPOWERLEVEL_P); 
+	// Prep our ACK
+	// Default ACK is to echo
+	sprintf(ack, "%s{%s}", COMMAND_ACK, a);
+	// Echo the command to debug
 	csk_uart0_puts("task_externalcmds:\t");
 	csk_uart0_puts(a);
 	csk_uart0_puts("\r\n");
+	// Tmp is used by many
 	char tmp[400]; 
+
 	int I;
 	for(I=0;I<1000;I++) Nop();
+
+
+	// Start command handling
 	if (a[0]=='\r' || a[0]=='\n' || a[0]==0) { 
+		// Something burped. Return without an ACK
 		return;
 	}
 	if (a[0]=='i' && a[1]=='2' && a[2]=='c') { //if (a begins with i2c) !!!
@@ -163,40 +177,21 @@ void CMDS(char a[], char * saveName) {
 			//csk_uart0_puts(tmp);
 			BroadcastOrSaveN(tmp, saveName, numRec+4);
 		}
-		return;
+		return;	// Has its own ACK
 	}//i2c
-
-	if (a[0]=='R' && a[1]=='H' && a[2]=='E') { // if (a begins with RHE) !!!
-		/*Resets the Helium radio
-		*/
-		
-		char HeOut[50]={'H', 'e', 0x10, 0x02, 0, 0x01, 0,0};
-		int i;
-		HeCkSum(HeOut,6); // Formats the header checksum
-		HeCkSum(HeOut,8); // Formats the payload checksum, and appends two bytes to the end.
-	
-		// We cannot act until the TX line is clear
-		OS_WaitBinSem(BINSEM_CLEAR_TO_SEND_P, OSNO_TIMEOUT);
-		for(i=0;i<10;i++) {
-			csk_uart1_putchar(HeOut[i]);
-		}
-		return;
-	}//RHE
 
 	if(a[0] == 'R' && a[1] == 'I' && a[2] == 'M' && a[3] == 'L') {// // if a (beings with RIML!!!)
 		/* Expects RIML
 		*/
 		IRONMANINT=0;
+		BroadcastOrSave(ack, saveName);
 		return;
-	}
-
-	if(a[0]=='I' && a[1]=='R' && a[2]=='O' && a[3]=='N' && a[4]=='M' && a[5]=='A' && a[6]=='N' && a[7]=='L' && a[8]=='i' && a[9]=='v' && a[10]=='e' && a[11]=='s' && a[12]=='1') {// // if a (beings with IRONMANLives1!!!)
-		/* Expects IRONMANLives1
-		*/
 	}
 
 	if(a[0]=='I' && a[1]=='R' && a[2]=='O' && a[3]=='N' && a[4]=='M' && a[5]=='A' && a[6]=='N' 
 		&& a[7]=='L' && a[8]=='i' && a[9]=='v' && a[10]=='e' && a[11]=='s') {
+		sprintf(ack,"IRONMANINT:%d",IRONMANINT);
+		BroadcastOrSave(ack, saveName);
 		// Switch on the next character
 		if ((a[12] == '0') && (IRONMANINT==0)) {
 			IRONMANINT=1;
@@ -209,113 +204,111 @@ void CMDS(char a[], char * saveName) {
 			return;
 		}
 		// If we get here, we haven't followed the sequence
-		sprintf(tmp,"IRONMANINT:%d",IRONMANINT);
-		csk_uart0_puts(tmp);
-		HeTrans255Str(tmp);
 		CMDS("RIML", 0);
 		return;
 	}
 
-	if (a[0]=='V' && a[1]=='D' && a[2]=='L' && a[3]=='B') { //if (a begins with VDLB) !!!
-		/*Gets the number of bytes needed to be downlinked from Independence.
-		*/
-		unsigned char DLbytes[4];
-		unsigned long long totalbytes;
-		unsigned long long DLB3;
-		unsigned long long DLB2;
-		unsigned long long DLB1;
-		unsigned long long DLB0;
+	if (a[0]=='V') { // Vanderbilt payload commands
+		if (a[1]=='D' && a[2]=='L' && a[3]=='B') { //if (a begins with VDLB) !!!
+			/*Gets the number of bytes needed to be downlinked from Independence.
+			*/
+			unsigned char DLbytes[4];
+			unsigned long long totalbytes;
+			unsigned long long DLB3;
+			unsigned long long DLB2;
+			unsigned long long DLB1;
+			unsigned long long DLB0;
 
-		DLbytes[0]=2;
-		DLbytes[1]=0;
-//		VUC(DLbytes,2, DLbytes, 4);
-		DLB3=DLbytes[3];
-		DLB2=DLbytes[2];
-		DLB1=DLbytes[1];
-		DLB0=DLbytes[0];
-		totalbytes=DLB3+DLB2*256+DLB1*256*256+DLB0*256*256*256;
-		sprintf(tmp,"task_externalcmds:\t%llu bytes\r\n",totalbytes);
-		csk_uart0_puts(tmp);
-		BroadcastOrSave(tmp, saveName);
-		return;
-	}//VDLB
+			DLbytes[0]=2;
+			DLbytes[1]=0;
+	//		VUC(DLbytes,2, DLbytes, 4);
+			DLB3=DLbytes[3];
+			DLB2=DLbytes[2];
+			DLB1=DLbytes[1];
+			DLB0=DLbytes[0];
+			totalbytes=DLB3+DLB2*256+DLB1*256*256+DLB0*256*256*256;
+			sprintf(ack,"VDLB:\t%llu bytes\r\n",totalbytes);
+			csk_uart0_puts(ack);
+			BroadcastOrSave(ack, saveName);
+			return;
+		}//VDLB
 
-	if (a[0]=='V' && a[1]=='A' && a[2]=='N' && a[3]=='D') { //if (a begins with VAND) !!!
-		/*Expects VANDLLxx...
-		VAND=Command block (gonna speak to Vandy).
-		LL=Number of bytes you want back, in ASCII encoded HEX.
-		xx...=The data you are sending, in ASCII encoded HEX,up to 256 bytes (xx=one byte)
-		*/
-		if (strlen(a)>6)  {
-			int numRec=makeHex(a[4],a[5]);
-			int i;	
-			if ((strlen(a)%2) != 0) {
-				a[strlen(a)-1]=0;
+		if (a[1]=='A' && a[2]=='N' && a[3]=='D') { //if (a begins with VAND) !!!
+			/*Expects VANDLLxx...
+			VAND=Command block (for COMMODORE).
+			LL=Number of bytes you want back, in ASCII encoded HEX.
+			xx...=The data you are sending, in ASCII encoded HEX,up to 256 bytes (xx=one byte)
+			*/
+			if (strlen(a)>6)  {
+				int numRec=makeHex(a[4],a[5]);
+				int i;	
+				if ((strlen(a)%2) != 0) {
+					a[strlen(a)-1]=0;
+				}
+				int newSizeOfa=-1;
+				for (i=6;i<strlen(a);i=i+2) {
+					a[newSizeOfa+1]=makeHex(a[i],a[i+1]);
+					newSizeOfa++;
+				}
+				for (i=strlen(a)-newSizeOfa;i>1;i--) {
+					a[strlen(a)-1]=0;
+				}
+
+				if (numRec>78) numRec=78;
+				VandHex(a,newSizeOfa+1,numRec);
+				sprintf(ack,"VAND:\t%s\r\n",a);
+				csk_uart0_puts(ack);
+				BroadcastOrSave(ack, saveName);
 			}
-			int newSizeOfa=-1;
-			for (i=6;i<strlen(a);i=i+2) {
-				a[newSizeOfa+1]=makeHex(a[i],a[i+1]);
-				newSizeOfa++;
+			return;
+		}//VAND
+		if (a[1]=='U' && a[2]=='C') { //if (a begins with VUC) !!!
+			/*Expects VUCLLxx...
+			VUC=command block (gonna speak to the VUC).
+			LL=Number of bytes you want back, in ASCII encoded HEX.
+			xx...=The data you are sending, in ASCII encoded HEX,up to 256 bytes (xx=one byte)
+			*/
+			if (strlen(a)>5)  {
+				int numRec=makeHex(a[3],a[4]);
+				int i;	
+				if ((strlen(a)%2) != 1) {
+					a[strlen(a)-1]=0;
+				}
+				int newSizeOfa=0;
+				int STRLEN=strlen(a);
+				for (i=5;i<STRLEN;i=i+2) {
+					a[newSizeOfa]=makeHex(a[i],a[i+1]);
+					newSizeOfa++;
+				}
+				if (numRec>78) numRec=78;
+				VUCHex(a,newSizeOfa,a,numRec);
+				sprintf(ack,"VUC:\t%s\r\n",a);
+				csk_uart0_puts(ack);
+				BroadcastOrSave(ack, saveName);
 			}
-			for (i=strlen(a)-newSizeOfa;i>1;i--) {
-				a[strlen(a)-1]=0;
-			}
+			return;
+		}//VUC
 
-			if (numRec>78) numRec=78;
-			VandHex(a,newSizeOfa+1,numRec);
-			sprintf(tmp,"task_externalcmds:\t%s\r\n",a);
-			csk_uart0_puts(tmp);
-			BroadcastOrSave(tmp, saveName);
-		}
-		return;
-	}//VAND
+		if (a[1]=='O' && a[2]=='N') { //if (a begins with VON) !!!
+			/*Expects VON 
+			VON=Command Block (turns on Independence and Commodore)
+			*/
+			OSSignalBinSem(BINSEM_VUC_TURN_ON_P);
+			strcpy(ack, "VON Sequence Initiated");
+			BroadcastOrSave(ack, saveName);
+			return;
+		}//VON
 
-	if (a[0]=='V' && a[1]=='U' && a[2]=='C') { //if (a begins with VUC) !!!
-		/*Expects VUCLLxx...
-		VUC=command block (gonna speak to the VUC).
-		LL=Number of bytes you want back, in ASCII encoded HEX.
-		xx...=The data you are sending, in ASCII encoded HEX,up to 256 bytes (xx=one byte)
-		*/
-		if (strlen(a)>5)  {
-			int numRec=makeHex(a[3],a[4]);
-			int i;	
-			if ((strlen(a)%2) != 1) {
-				a[strlen(a)-1]=0;
-			}
-			int newSizeOfa=0;
-			int STRLEN=strlen(a);
-			for (i=5;i<STRLEN;i=i+2) {
-				a[newSizeOfa]=makeHex(a[i],a[i+1]);
-				newSizeOfa++;
-			}
-			if (numRec>78) numRec=78;
-			VUCHex(a,newSizeOfa,a,numRec);
-			sprintf(tmp,"task_externalcmds:\t%s\r\n",a);
-			csk_uart0_puts(tmp);
-			BroadcastOrSave(tmp, saveName);
-		}
-		return;
-	}//VUC
-
-	if (a[0]=='V' && a[1]=='O' && a[2]=='N') { //if (a begins with VON) !!!
-		/*Expects VON 
-		VON=Command Block (turns on Independence and Commodore)
-		*/
-		OSSignalBinSem(BINSEM_VUC_TURN_ON_P);
-		strcpy(tmp, "VON Sequence Initiated");
-		BroadcastOrSave(tmp, saveName);
-		return;
-	}//VON
-
-	if (a[0]=='V' && a[1]=='O' && a[2]=='F' && a[3]=='F') { //if (a begins with VOFF) !!!
-		/*Expects VOFF 
-		VOFF=Command Block (turns off Independence and Commodore)
-		*/
-		OSSignalBinSem(BINSEM_VUC_TURN_OFF_P);
-		strcpy(tmp, "VOFF Sequence Initiated");
-		BroadcastOrSave(tmp, saveName);
-		return;
-	}//VOFF
+		if (a[1]=='O' && a[2]=='F' && a[3]=='F') { //if (a begins with VOFF) !!!
+			/*Expects VOFF 
+			VOFF=Command Block (turns off Independence and Commodore)
+			*/
+			OSSignalBinSem(BINSEM_VUC_TURN_OFF_P);
+			strcpy(ack, "VOFF Sequence Initiated");
+			BroadcastOrSave(ack, saveName);
+			return;
+		}//VOFF
+	} // End Vandy command family
 
 	if (a[0]=='S' && a[1]=='C' && a[2]=='C') { //if (a begins with SCC) !!!
 		/*Expects SCCTTTTTTTTllllxx...
@@ -332,9 +325,13 @@ void CMDS(char a[], char * saveName) {
 				message[i]=a[i+3];
 			}
 			message[strlen(a) - 3] = 0;
-			if (strlen(message) >= 15) OSSignalMsg(MSG_EDITCMDSCH_P,(OStypeMsgP) (message));
-			return;
-		}
+			if (strlen(message) >= 15) {
+				OSSignalMsg(MSG_EDITCMDSCH_P,(OStypeMsgP) (message));
+				sprintf(ack,"Scheduled:\t%s\r\n",message);
+				BroadcastOrSave(ack, saveName);
+				return;
+			}
+		} // Let it drop to error handling at the end of the function
 	}//SCC
 	
 	// SD commands deal with reading/writing to the SD card
@@ -347,13 +344,13 @@ HeTrans255Str("KHAAAAAAN!");
 			if(file) {
 				f_seek(file, 0L, SEEK_END);
 				unsigned long sz = f_tell(file);
-				sprintf(tmp, "%s is %lu bytes\r\n", (char*) (a) + 3, sz);
-				BroadcastOrSave(tmp, saveName);
+				sprintf(ack, "%s is %lu bytes\r\n", (char*) (a) + 3, sz);
+				BroadcastOrSave(ack, saveName);
 				f_close(file);
 			}
 			else {					
-				sprintf(tmp, "File not found: %s\r\n", (char*) (a) + 3);
-				BroadcastOrSave(tmp, saveName);
+				sprintf(ack, "File not found: %s\r\n", (char*) (a) + 3);
+				BroadcastOrSave(ack, saveName);
 			}
 			return;
 		}	
@@ -366,6 +363,7 @@ HeTrans255Str("KHAAAAAAN!");
 			*/
 			if(strlen(a)>20){
 				a[27]=0;
+				BroadcastOrSave(ack, saveName);				
 				char message[strlen(a)+1]; //+1 for the null terminator.
 				strcpy(message,a);
 				OSSignalMsg(MSG_SDR_P,((OStypeMsgP) (message)));
@@ -390,6 +388,7 @@ HeTrans255Str("KHAAAAAAN!");
 				strcpy(fName, "names");
 			}
 			sprintf(message,"SDR0000000000100000%s", fName);
+			BroadcastOrSave(ack, saveName);
 			OSSignalMsg(MSG_SDR_P,((OStypeMsgP) (message)));
 			return;
 		} else if (a[2] == 'W') { // SDW overwrites data to a file
@@ -411,6 +410,7 @@ HeTrans255Str("KHAAAAAAN!");
 				a[i] = a[4+nameLength+i];
 			}
 			a[cmdLength] = 0;
+			BroadcastOrSave(ack, saveName);
 			CMDS(a, name);
 			return;
 		} else if (a[2] == 'A') { // SDA appends data to file
@@ -433,7 +433,9 @@ HeTrans255Str("KHAAAAAAN!");
 				a[i] = a[4+nameLength+i];
 			}
 			a[cmdLength] = 0;
-		
+			// This echoes the ACK back
+			BroadcastOrSave(ack, saveName);
+			// This actually writes
 			BroadcastOrSave(a, name);
 			return;
 		} else if (a[2] == 'd' && a[3] == 'e' && a[4] == 'l' && a[5] == 'e' && a[6] == 't' && a[7] == 'e') {// // if a (beings with SDdelete!!!)
@@ -462,11 +464,14 @@ HeTrans255Str("KHAAAAAAN!");
 		/* Expects RZCL
 		*/
 		ZEROCLOCKINT=0;
+		BroadcastOrSave(ack, saveName);
 		return;
 	}
 
 	if(a[0]=='Z' && a[1]=='E' && a[2]=='R' && a[3]=='O' 
 		&& a[4]=='C' && a[5]=='l' && a[6]=='o' && a[7]=='c' && a[8]=='k') {
+		sprintf(ack,"ZEROCLOCK:%d",IRONMANINT);
+		BroadcastOrSave(ack, saveName);
 		// Switch on the next character
 		if ((a[9]=='0') && (ZEROCLOCKINT==0)) { 
 			ZEROCLOCKINT=1;
@@ -477,7 +482,7 @@ HeTrans255Str("KHAAAAAAN!");
 		} else if ((a[9]=='2') && (ZEROCLOCKINT==2)) { 
 			// Reset all to initial conditions
 			long i;
-			CMDS("ION",0);
+//			CMDS("ION",0);
 			//Set up & zero out RTC. Resets to State 0.
 			unsigned char  RTCTemp;
 			for(RTCTemp=0;RTCTemp<8;RTCTemp++) {
@@ -517,45 +522,17 @@ HeTrans255Str("KHAAAAAAN!");
 			return;
 		}
 		// If we get here, we're off-sequence. Reset the counter
-		sprintf(tmp,"ZEROCLOCKINT:%d",ZEROCLOCKINT);
-		csk_uart0_puts(tmp);
-		HeTrans255Str(tmp);
+		sprintf(ack,"ZEROCLOCK:%d",ZEROCLOCKINT);
+		csk_uart0_puts(ack);
+		BroadcastOrSave(ack, saveName);		
 		CMDS("RZCL",0);
 		return;
 	}
 
 	if(a[0]=='B' && a[1]=='U' && a[2]=='R' && a[3]=='N') { // if a (beings with BURN!!!)
+		sprintf(ack, "Burn Signal Set High");
+		BroadcastOrSave(ack, saveName);		
 		OSSignalBinSem(BINSEM_BURNCIRCUIT_P);
-		return;
-	}
-
-	if(a[0]=='H' && a[1]=='P' && a[2]=='A' && a[3]=='S') { // if a (beings with HPAS!!!)
-		/* Expects HPASxx...
-		HPAS = Command block
-		xx...=The data you are sending, in ASCII encoded HEX,up to 256 bytes (xx=one byte)
-		*/
-		long i;
-		int newSizeOfa=0;
-		if ((strlen(a)%2) != 0) {
-			a[strlen(a)-1]=0;
-		}
-		int strlena=strlen(a);
-		for (i=4;i<strlena;i=i+2) {
-			a[newSizeOfa]=makeHex(a[i],a[i+1]);
-			newSizeOfa++;
-		}
-		for(i=0;i<100000;i++) Nop();
-		// We cannot act until the TX line is clear
-		OS_WaitBinSem(BINSEM_CLEAR_TO_SEND_P, OSNO_TIMEOUT);
-		for(i=0;i<newSizeOfa;i++) csk_uart1_putchar(a[i]);
-		for(i=0;i<100000;i++) Nop();
-		return;
-	}
-
-	if(a[0]=='T' && a[1]=='I' && a[2]=='M' && a[3]=='M') { // if a (beings with TIMM!!!)
-		sprintf(a,"task_externalcmds:\t%llu\r\n",getMissionClock());
-		csk_uart0_puts(a);
-		BroadcastOrSave(a, saveName);
 		return;
 	}
 
@@ -591,9 +568,8 @@ HeTrans255Str("KHAAAAAAN!");
         	uTime = uTime-now ;
 		}
 		else{
-			char TMD[50];
-			sprintf(TMD,"Task_externalcmds\t\t FAILURE\r\n");
-			BroadcastOrSave(TMD, saveName);
+			sprintf(ack,"Task_externalcmds\t\t CLOCK SET FAILURE\r\n");
+			BroadcastOrSave(ack, saveName);
 			return;
 		}
 		unsigned long month = 8;	
@@ -707,39 +683,48 @@ HeTrans255Str("KHAAAAAAN!");
 		reset_i2c_bus();
 		int i = 0;
 		for(i=0;i<1000;i++) Nop();
+		BroadcastOrSave(ack, saveName);
 		return;
     }//SCT
 
-	if (a[0]=='T' && a[1]=='I' && a[2]=='M' && a[3]=='R') { //TIMR
-		unsigned char outpt[8];
-		long i;
+	if(a[0]=='T') { // Time commands
+		if (a[1]=='I' && a[2]=='M' && a[3]=='M') { // if a (beings with TIMM!!!)
+			sprintf(ack,"Mission Clock:\t%llu\r\n",getMissionClock());
+			csk_uart0_puts(ack);
+			BroadcastOrSave(ack, saveName);
+			return;
+		}
 
-		//Grab time registers from RTC.
-		i2c_start();
-		send_i2c_byte((0x68<<1));
-		send_i2c_byte(0x00);
-		i2c_restart();
-		send_i2c_byte((0x68<<1)+1);
-		for(i=0;i<7;i++) outpt[i]=i2c_read_ack();
-		outpt[7]=i2c_read_nack();
-		reset_i2c_bus();
-		for(i=0;i<1000;i++) Nop();
+		if (a[1]=='I' && a[2]=='M' && a[3]=='R') { //TIMR
+			unsigned char outpt[8];
+			long i;
 
-		//Zero out unknown bits.
-		outpt[1]=outpt[1]&0b01111111;
-		outpt[2]=outpt[2]&0b01111111;
-		outpt[3]=outpt[3]&0b00111111;
-		//outpt[4] will be ignored.
-		outpt[5]=outpt[5]&0b00111111;
-		outpt[6]=outpt[6]&0b00011111;
+			//Grab time registers from RTC.
+			i2c_start();
+			send_i2c_byte((0x68<<1));
+			send_i2c_byte(0x00);
+			i2c_restart();
+			send_i2c_byte((0x68<<1)+1);
+			for(i=0;i<7;i++) outpt[i]=i2c_read_ack();
+			outpt[7]=i2c_read_nack();
+			reset_i2c_bus();
+			for(i=0;i<1000;i++) Nop();
 
-		sprintf(a,"task_externalcmds:\t%02X:%02X:%02X.%02X %02X/%02X/20%02X\r\n",outpt[3],outpt[2],outpt[1],outpt[0],outpt[5],outpt[6],outpt[7]);
-		csk_uart0_puts(a);
-		BroadcastOrSave(a, saveName);
-		
-		return;
-    }//TIM
+			//Zero out unknown bits.
+			outpt[1]=outpt[1]&0b01111111;
+			outpt[2]=outpt[2]&0b01111111;
+			outpt[3]=outpt[3]&0b00111111;
+			//outpt[4] will be ignored.
+			outpt[5]=outpt[5]&0b00111111;
+			outpt[6]=outpt[6]&0b00011111;
 	
+			sprintf(ack,"RTC:\t%02X:%02X:%02X.%02X %02X/%02X/20%02X\r\n",
+					outpt[3],outpt[2],outpt[1],outpt[0],outpt[5],outpt[6],outpt[7]);
+			csk_uart0_puts(ack);
+			BroadcastOrSave(ack, saveName);	
+			return;
+    	}//TIM
+	} // End time commands
 	if (a[0]=='D' && a[1]=='E' && a[2]=='L' && a[3]=='T') { //DELT
 		//Deletes a scheduled task.
 		//Expects: DELTxxxx
@@ -752,6 +737,7 @@ HeTrans255Str("KHAAAAAAN!");
 			intPtr++;
 			(*intPtr)=makeHex(a[4],a[5]);
 			deleteSchedule(num);
+			BroadcastOrSave(a, saveName);
 			return;
 		}
     }//DELT
@@ -781,33 +767,104 @@ HeTrans255Str("KHAAAAAAN!");
 		}
     }//GETT	
 
-	if (a[0]=='H' && a[1]=='E' && a[2]=='S' && a[3]=='D') { //HESD
-		//
-		//Expects: HESDxx
-		//xx is the He20xx command data to save to the SD-Card
-		//Must be used in conjunction with SDW, ie: SDWLn...HESDxx
-		if(strlen(a)>=6 && saveName) {
-			a[0]=makeHex(a[4],a[5]);
-			strcpy(((char*) (a))+1,saveName);
-			setHeSaveData3(a);
+	if (a[0]=='H') {  // Helium commands
+		if (a[1]=='P' && a[2]=='A' && a[3]=='S') { // if a (beings with HPAS!!!)
+			/* Expects HPASxx...
+			HPAS = Command block
+			xx...=The data you are sending, in ASCII encoded HEX,up to 256 bytes (xx=one byte)
+			*/
+			long i;
+			int newSizeOfa=0;
+			if ((strlen(a)%2) != 0) {
+				a[strlen(a)-1]=0;
+			}
+			int strlena=strlen(a);
+			for (i=4;i<strlena;i=i+2) {
+				a[newSizeOfa]=makeHex(a[i],a[i+1]);
+				newSizeOfa++;
+			}
+			for(i=0;i<100000;i++) Nop();
+			// We cannot act until the TX line is clear
+			OS_WaitBinSem(BINSEM_CLEAR_TO_SEND_P, OSNO_TIMEOUT);
+			for(i=0;i<newSizeOfa;i++) csk_uart1_putchar(a[i]);
+			for(i=0;i<100000;i++) Nop();
+			BroadcastOrSave(ack, saveName);
 			return;
 		}
-    }//HESD
-
-	if (a[0]=='H' && a[1]=='P' && a[2]=='L' && a[3]=='H') { //HPLH
-		//HPLHxx
-		//xx=high-state power-level for the He Radio
-		setHeHighPowerLevel(makeHex(a[4],a[5]));
-		return;
-    }//HPLH
-
-	if (a[0]=='H' && a[1]=='P' && a[2]=='L' && a[3]=='L') { //HPLL
-		//HPLHxx
-		//xx=high-state power-level for the He Radio
-		setHeDefaultPowerLevel(makeHex(a[4],a[5]));
-		return;
-    }//HPLL
-
+		if (a[1]=='E') { // HE family of device commands
+			if (a[2]=='R' && a[3]=='S') { //HERS
+				// Reset the helium
+				resetHe();
+				BroadcastOrSave(ack, saveName);			
+				return;
+			}
+			if (a[2]=='S' && a[3]=='D') { //HESD
+				//
+				//Expects: HESDxx
+				//xx is the He20xx command data to save to the SD-Card
+				//Must be used in conjunction with SDW, ie: SDWLn...HESDxx
+				if(strlen(a)>=6 && saveName) {
+					a[0]=makeHex(a[4],a[5]);
+					strcpy(((char*) (a))+1,saveName);
+					setHeSaveData3(a);
+					BroadcastOrSave(ack, saveName);			
+					return;
+				}
+	    	}//HESD
+			if (a[2]=='S' && a[3]=='C') { //HESC
+				commandHeStandardConfig();	// Found in task_MHXPower
+				BroadcastOrSave(ack, saveName);			
+				return;
+    		}//HESC
+			if (a[2]=='B' && a[3]=='O') { //HEBO
+				commandHeNoBeacons();
+				BroadcastOrSave(ack, saveName);			
+				return;
+		    }//HEBO
+			if (a[2]=='C' && a[3]=='P') { //HECP
+				//HECP(88bytes)
+				//(88bytes)=the new standard configuration packet.
+				if(strlen(a)==92) {
+					char* HeStandardConfig=getHeConfig();
+					int i;
+					for(i=0;i<4;i++) HeStandardConfig[14+i]=makeHex(a[4+2*i],a[5+2*i]);
+					BroadcastOrSave(ack, saveName);			
+					return;
+				}
+		    }//HECP
+		} // End HE config/sd commands
+		if (a[1]=='P' && a[2]=='L') { // Set HE Power Level
+			if (a[3]=='H') { //HPLH
+				//HPLHxx
+				//xx=high-state power-level for the He Radio
+				setHeHighPowerLevel(makeHex(a[4],a[5]));
+				BroadcastOrSave(ack, saveName);
+				return;
+		    }//HPLH
+			if (a[3]=='L') { //HPLL
+				//HPLLxx
+				//xx=low-state power-level for the He Radio
+				setHeDefaultPowerLevel(makeHex(a[4],a[5]));
+				BroadcastOrSave(ack, saveName);
+				return;
+		    }//HPLL
+			if (a[3]=='N') { //HPLN
+				//HPLNxx
+				//xx= power-level for the He Radio
+				// This sets the power level now. It will revert when the defaults are called.
+				setHePowerLevelNow(makeHex(a[4],a[5]));
+				BroadcastOrSave(ack, saveName);
+				return;
+	    	}//HPLN
+		} // End HPL family
+		if (a[1]=='B' && a[2]=='I' && a[3]=='N') { //HBIN
+			// Set the Helium binary semaphore high (enable Tx)
+			OSSignalBinSem(BINSEM_HEON_P);
+			sprintf(ack, "Helium Enabled");
+			BroadcastOrSave(ack, saveName);			
+			return;
+    	}//HBIN
+	} // End Helium commands
 	if (a[0]=='B' && a[1]=='E' && a[2]=='P') { //BEP
 		//BEPxxyyzz
 		//xx= time in seconds between beacon frames
@@ -818,63 +875,39 @@ HeTrans255Str("KHAAAAAAN!");
 		if (strlen(a) >= 5 + 2*BEACON_NUM_FRAMES) {
 			unsigned int bintervals[BEACON_NUM_FRAMES+1];
 			int i;
+			sprintf(ack, "Beacon Intervals");
 			for (i=0; i < BEACON_NUM_FRAMES+1; i++) {
 				bintervals[i] = makeHex(a[3+2*i], a[4+2*i]);
+				sprintf(ack, "%s %d", ack, bintervals[i]);
 			}
 			setBeaconFrameIntervals(bintervals);
+			BroadcastOrSave(ack, saveName);			
 			return;
 		} // If we fail, then let it drop to the error message
     }//BEP
 
-	if (a[0]=='H' && a[1]=='E' && a[2]=='S' && a[3]=='C') { //HESC
-		//HESC
-		commandHeStandardConfig();	// Found in task_MHXPower
-		return;
-    }//HESC
-
-	if (a[0]=='H' && a[1]=='E' && a[2]=='B' && a[3]=='O') { //HEBO
-		//HEBO
-		commandHeNoBeacons();
-		return;
-    }//HEBO
-
-	if (a[0]=='H' && a[1]=='E' && a[2]=='C' && a[3]=='P') { //HECP
-		//HECP(88bytes)
-		//(88bytes)=the new standard configuration packet.
-		if(strlen(a)==92) {
-			char* HeStandardConfig=getHeConfig();
-			int i;
-			for(i=0;i<4;i++) HeStandardConfig[14+i]=makeHex(a[4+2*i],a[5+2*i]);
-			return;
-		}
-    }//HECP
-
 	if (a[0]=='B' && a[1]=='N' && a[2]=='O' && a[3]=='W') { //BNOW
 		// Send a beacon right now (set the semaphore high)
 		OSSignalBinSem(BINSEM_SEND_BEACON_P);	
-		return;
+		return;	// Ack is the beacon
     }//BNOW
 
-	if (a[0]=='H' && a[1]=='B' && a[2]=='I' && a[3]=='N') { //HBIN
-		// Set the Helium binary semaphore high (enable Tx)
-		OSSignalBinSem(BINSEM_HEON_P);
-		return;
-    }//HBIN
 	if (a[0]=='E' && a[1]=='J' && a[2]=='E' && a[3]=='C') { //EJEC
 		// Set the Ejection binary semaphore to high
 		OSSignalBinSem(BINSEM_EJECTED_P);
+		sprintf(ack, "Ejection set high");
+		BroadcastOrSave(ack, saveName);			
 		return;
     }//EJEC
 	if (a[0]=='E' && a[1]=='C' && a[2]=='H' && a[3]=='O') { //ECHO
-		HeTrans255Str(a);
+		BroadcastOrSave(ack, saveName);			
 		return;
     }//ECHO
 
-	//At this point, no command has been recognized, as it would have returned if it had been.
-	char tmps[80];
-	sprintf(tmps, "%s{%s}", COMMAND_NO_JOY, a);
-	csk_uart0_puts(tmps);
-	BroadcastOrSave(tmps, saveName);
+	//At this point, no command has been recognized (recognized commands return out of the function before here).
+	sprintf(ack, "%s{%s}", COMMAND_NO_JOY, a);
+	csk_uart0_puts(ack);
+	BroadcastOrSave(ack, saveName);
 //	HeTrans255Str(a);
 }
 

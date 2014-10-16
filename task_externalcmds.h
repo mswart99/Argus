@@ -24,6 +24,7 @@ extern void task_externalcmds(void);
 // Symbols, etc.
 #define STR_TASK_EXTERNALCMDS "task_externalcmds: " STR_1TAB
 #define COMMAND_NO_JOY "Command NOT Recognized: "
+#define COMMAND_ACK "ACK:"
 
 #endif /* __task_externalcmds_h */
 

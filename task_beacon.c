@@ -33,6 +33,9 @@ extern char HeTrans255Str(char* inpt);
 extern void VUC_getRunState(char* dat);
 extern void	VUC_getStatus(char *dat);
 extern void VUC_getTime(char* dat);
+extern char getHePowerLevel();
+extern char getHeDefaultPowerLevel();
+extern char getHeHighPowerLevel();
 
 extern void getMissionClockString(char* array);
 extern char* RSSI_getTelem(int charOrAscii);
@@ -162,42 +165,42 @@ void task_beacon(void) {
             
            // ======================= Switch on frame ID
 			if (frameID == 0) {
-		//=============Begin Atmega Interface=============
-		CS1_LOW;
-		OS_Delay(20);
+				//=============Begin Atmega Interface=============
+				CS1_LOW;
+				OS_Delay(20);
 
-		for(data=0;data<8;data++) { //ADC-Reads (10-Bits)
-			ADCData[data]=0;
-			for(count=0;count<10;count++) { //Bits
-				SCLK_HIGH;
-				for(i=0;i<SCLK_DELAY;i++) Nop(); //Delay
-				ADCData[data]|=(MISO<<count);
-				SCLK_LOW;
-				for(i=0;i<SCLK_DELAY;i++) Nop(); //Delay
-			}
-			sprintf(final,"%s%03X ",final,ADCData[data]);
-		}
+				for(data=0;data<8;data++) { //ADC-Reads (10-Bits)
+					ADCData[data]=0;
+					for(count=0;count<10;count++) { //Bits
+						SCLK_HIGH;
+						for(i=0;i<SCLK_DELAY;i++) Nop(); //Delay
+						ADCData[data]|=(MISO<<count);
+						SCLK_LOW;
+						for(i=0;i<SCLK_DELAY;i++) Nop(); //Delay
+					}
+				sprintf(final,"%s%03X ",final,ADCData[data]);
+				}
 	
-		CS1_HIGH; 
-		OS_Delay(20);
+				CS1_HIGH; 
+				OS_Delay(20);
+	
+				CS2_LOW;
+				// Without this delay, ADC is read incorrectly
+				OS_Delay(20);	
+				for(data=8;data<16;data++) { //ADC-Reads (10-Bits)
+					ADCData[data]=0;
+					for(count=0;count<10;count++) { //Bits
+						SCLK_HIGH;
+						for(i=0;i<SCLK_DELAY;i++) Nop(); //Delay
+						ADCData[data]|=(MISO<<count);
+						SCLK_LOW;
+						for(i=0;i<SCLK_DELAY;i++) Nop(); //Delay
+					}
+					sprintf(final,"%s%03X ",final,ADCData[data]);
+				}
 
-		CS2_LOW;
-		// Without this delay, ADC is read incorrectly
-		OS_Delay(20);	
-		for(data=8;data<16;data++) { //ADC-Reads (10-Bits)
-			ADCData[data]=0;
-			for(count=0;count<10;count++) { //Bits
-				SCLK_HIGH;
-				for(i=0;i<SCLK_DELAY;i++) Nop(); //Delay
-				ADCData[data]|=(MISO<<count);
-				SCLK_LOW;
-				for(i=0;i<SCLK_DELAY;i++) Nop(); //Delay
-			}
-			sprintf(final,"%s%03X ",final,ADCData[data]);
-		}
-
-		CS2_HIGH;
-		//==============End Atmega Interface==============
+				CS2_HIGH;
+				//==============End Atmega Interface==============
 //				sprintf(final, "%s %s ", final, 
 //					asciified3Array(i2c_getADC(), NUM_ADC_CHANNELS));
 
@@ -223,9 +226,12 @@ void task_beacon(void) {
 					VUC_getStoredTelem(2));
             } else if (frameID == 2) {
                 // Helium config/telemetry data
-                sprintf(final, "%s %s", final,
+                sprintf(final, "%s %s %02X%02X%02X", final,
 					//i2c_getThisADCchannel(ADC_BATV), 
-					RSSI_getConfig(2));
+					RSSI_getConfig(2),
+					getHePowerLevel(), 
+					getHeDefaultPowerLevel(), 
+					getHeHighPowerLevel());
 				// These must be split into two sprintfs, or the array is
 				// repeated!
                 sprintf(final, "%s %s", final, RSSI_getTelem(2));

@@ -79,6 +79,9 @@ static char HEStandardConfig[HE_CONFIG_LEN+10]={SYNC1, SYNC2, HE_COMMAND,
 	0, 0}; //145 even
 //static char HEStandardConfig[44]={'H', 'e', 0x10, 0x06, 0x00, 0x22, 0, 0, 0x00, 0, 0x01, 0x01, 0x00, 0x00, 0x68, 0x36, 0x02, 0x00, 0x00, 0xAC, 0x06, 0x00, 'A', 'R', 'G', 'U', 'S', '1', 'S', 'L', 'U', 'G', 'N', 'D', 0x05, 0x00, 0x00, 0x00,	0x40, 0x00, 0x00, 0x00, 0, 0}; //145 even
 
+static char HePowerCmd[11]={SYNC1, SYNC2, HE_COMMAND, FAST_PA_SET,
+            0x00, 0x01, 0,0, 0, 0, 0};
+
 char* getHeConfig() {
 	return HEStandardConfig;
 }
@@ -86,8 +89,34 @@ char* getHeConfig() {
 void setHeDefaultPowerLevel(unsigned char pl) {
 	defaultPowerLevel=pl;
 }
+
 void setHeHighPowerLevel(unsigned char pl) {
 	highPowerLevel=pl;
+}
+
+void setHePowerLevelNow(unsigned char pl) {
+	HePowerCmd[8] = pl;
+	HeCkSum(HePowerCmd,6); 
+	HeCkSum(HePowerCmd,9); //This will append two bytes to the end.
+	// We cannot act until the TX line is clear
+//	OS_WaitBinSem(BINSEM_CLEAR_TO_SEND_P, OSNO_TIMEOUT);
+	int i=0;
+	for(i=0;i<11;i++) {
+		csk_uart1_putchar(HePowerCmd[i]);
+	}		
+}
+
+char getHeDefaultPowerLevel() {
+	return(defaultPowerLevel);
+}
+
+char getHeHighPowerLevel() {
+	return(highPowerLevel);
+}
+
+char getHePowerLevel() {
+	// The present value of He Power is what is stored in the config command
+	return(HePowerCmd[8]);
 }
 
 static unsigned int secsPowerHighAfterContact=20*60;
@@ -110,6 +139,18 @@ void commandHeNoBeacons() {
 	for(i=0;i<11;i++) {
 		csk_uart1_putchar(HeNoBeacons[i]);
 	}	
+}
+
+void resetHe() {
+	char HeReset[8]={SYNC1, SYNC2, HE_COMMAND, RESET_SYSTEM, 0, 0, 0,0};
+	int i;
+	HeCkSum(HeReset,6); // Formats the header checksum
+	// There is no data payload	
+	// We cannot act until the TX line is clear
+	OS_WaitBinSem(BINSEM_CLEAR_TO_SEND_P, OSNO_TIMEOUT);
+	for(i=0;i<8;i++) {
+		csk_uart1_putchar(HeReset[i]);
+	}
 }
 
 void task_MHXPower(void) {
@@ -176,8 +217,10 @@ void task_MHXPower(void) {
 	
 	while(1) {
 		count=0;
+		// Do nothing unless signaled to raise the power level
 		while(!OSReadBinSem(BINSEM_RAISEPOWERLEVEL_P)) {
 			OS_Delay(250);
+			// Wait 40 minutes and reset configuration
 			if(count >= 960) { //40min
 				for(i=0;i<100000;i++) Nop();
 				// We cannot act until the TX line is clear
@@ -190,15 +233,12 @@ void task_MHXPower(void) {
 			}
 			count++;
 		}
+		// Set the power level flag low again
 		OSTryBinSem(BINSEM_RAISEPOWERLEVEL_P);
-		char HePowerLevel[11]={SYNC1, SYNC2, HE_COMMAND, FAST_PA_SET,
-            0x00, 0x01, 0,0, highPowerLevel};
-		HeCkSum(HePowerLevel,6); 
-		HeCkSum(HePowerLevel,9); //This will append two bytes to the end.
-		for(i=0;i<11;i++) {
-//			csk_uart1_putchar(HePowerLevel[i]);
-		}
+		// Set the helium to high power and command it
+		setHePowerLevelNow(highPowerLevel);
 		count=0;
+		// Keep the power at high level as long as commanded high, until timed out
 		while(count<secsPowerHighAfterContact) {
 			if(OSReadBinSem(BINSEM_RAISEPOWERLEVEL_P)) {
 				OSTryBinSem(BINSEM_RAISEPOWERLEVEL_P);
@@ -207,14 +247,7 @@ void task_MHXPower(void) {
 			OS_Delay(100);
 			count++;
 		}
-		char HePowerLevel2[11]={SYNC1, SYNC2, HE_COMMAND, FAST_PA_SET,
-            0x00, 0x01, 0,0,defaultPowerLevel};
-		HeCkSum(HePowerLevel2,6); 
-		HeCkSum(HePowerLevel2,9); //This will append two bytes to the end.
-		// We cannot act until the TX line is clear
-		OS_WaitBinSem(BINSEM_CLEAR_TO_SEND_P, OSNO_TIMEOUT);
-		for(i=0;i<11;i++) {
-//			csk_uart1_putchar(HePowerLevel2[i]);
-		}		
+		// Go back to low power
+		setHePowerLevelNow(defaultPowerLevel);
 	}//While(1)
 } /* task_MHXPower() */
