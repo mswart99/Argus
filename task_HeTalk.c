@@ -71,7 +71,7 @@ char HeTrans255(char* inpt, int n) {
 			i++;
 		}
 		HeCkSum(HeOut,8+n); //This will append two bytes to the end.
-        OSSignalMsgQ(MSGQ_HETX_P, (OStypeMsgP) &HeOut);
+        OSSignalMsgQ(MSGQ_HETX_P, (OStypeMsgP) HeOut);
 //		for(i=0;i<(10+n);i++)
 //				csk_uart1_putchar(HeOut[i]);
 	} else { 
@@ -163,29 +163,29 @@ void task_HeTalk(void) {
 //	static int DELAY1 = 15;
 //	static int DELAY2 = 600;
 //	OSSignalBinSem(BINSEM_CLEAR_TO_SEND_P);
-    static OStypeMsgP msgP;
+    static OStypeMsgP *msgP;
     static char* packet;
-    static unsigned char dataLength;
+    static unsigned int dataLength;
 
 	while(1) {
         /* Wait forever for a message to transmit to the Helium. */
-        OS_WaitMsgQ(MSGQ_HETX_P, &msgP, OSNO_TIMEOUT);
+        OS_WaitMsgQ(MSGQ_HETX_P, msgP, OSNO_TIMEOUT);
         /* A message has arrived. The sixth character is the length of the
          * data payload. (Note that there's always 8 characters before
          * the payload, and there are 2 characters after a payload of
          * nonzero length.)
          */
-        dataLength = (unsigned char) msgP[5] + 8;
+        dataLength = (unsigned int) msgP[5] + 8;
         if (dataLength > 8) {
             // Add the two checksum bytes to the end
             dataLength = dataLength + 2;
         }
         // Now, wait for the radio to be unoccupied
-        OS_WaitBinSem(BINSEM_CLEAR_TO_SEND_P);
+        OS_WaitBinSem(BINSEM_CLEAR_TO_SEND_P, OSNO_TIMEOUT);
         // The first character is the
         int i=0;
         for (i=1; i <= dataLength; i++) {
-            csk_uart1_putchar(msP[i]);
+            csk_uart1_putchar(msgP[i]);
         }
         // We have finished our time with the radio. Signal that
         // it's clear to send
