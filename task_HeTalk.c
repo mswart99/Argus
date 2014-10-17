@@ -164,7 +164,7 @@ void task_HeTalk(void) {
 //	static int DELAY2 = 600;
 //	OSSignalBinSem(BINSEM_CLEAR_TO_SEND_P);
     static OStypeMsgP *msgP;
-    static char* packet;
+//    static char* packet;
     static unsigned int dataLength;
 
 	while(1) {
@@ -185,7 +185,7 @@ void task_HeTalk(void) {
         // The first character is the
         int i=0;
         for (i=1; i <= dataLength; i++) {
-            csk_uart1_putchar(msgP[i]);
+            csk_uart1_putchar((int) msgP[i]);
         }
         // We have finished our time with the radio. Signal that
         // it's clear to send
