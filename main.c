@@ -102,7 +102,10 @@ int main() {
   OSCreateBinSem(BINSEM_SEND_BEACON_P, 0);
   OSCreateBinSem(BINSEM_VUC_TURN_ON_P, 0);
   OSCreateBinSem(BINSEM_VUC_TURN_OFF_P, 0);
-    OSCreateMsg(MSG_SDR_P, (OStypeMsgP) 0);
+  OSCreateMsg(MSG_SDR_P, (OStypeMsgP) 0);
+  // Create message queues
+  OSgltypeMsgQP MsqQBuff[SIZEOF_HE_MSGQ];
+  OSCreateMsgQ(MSGQ_HETX_P, MQCBP_HETX_P, MsqQBuff, SIZEOF_HE_MSGQ);
 //    OSCreateMsg(MSG_HETOSDCARD_P, (OStypeMsgP) 0);
 //    OSCreateMsg(MSG_GETLINES_P,(OStypeMsgP) 0);
 //    OSCreateMsg(MSG_EDITCMDSCH_P,(OStypeMsgP) 0);

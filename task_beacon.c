@@ -153,7 +153,7 @@ void task_beacon(void) {
 		if (OSTryBinSem(BINSEM_SEND_BEACON_P)) {
 			// Need to let task_commandMHX finish reading the buffer
             // Note that we will not wait forever; this prevents hangups
-			OS_WaitBinSem(BINSEM_CLEAR_TO_SEND_P, 250);
+//			OS_WaitBinSem(BINSEM_CLEAR_TO_SEND_P, 250);
             // Start with the header BEACON_START[SC ID][VERSION][STATUS][FRAME ID]
 			int states = OSReadBinSem(BINSEM_DEPLOYED_P) + 2*OSReadBinSem(BINSEM_EJECTED_P)
                 + 8*OSReadBinSem(BINSEM_BURNCIRCUIT_P) + 4*OSReadBinSem(BINSEM_CLEAR_TO_SEND_P);

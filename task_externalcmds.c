@@ -336,7 +336,7 @@ void CMDS(char a[], char * saveName) {
 	
 	// SD commands deal with reading/writing to the SD card
 	if (a[0] == 'S' && a[1] == 'D') {
-HeTrans255Str("KHAAAAAAN!");
+//HeTrans255Str("KHAAAAAAN!");
 		if (a[2] == 'S') { // SDS gets file size
 			/* Expects SDSname, where name is file name (max 8 chars)
 			 */
