@@ -50,14 +50,16 @@ void HeCkSum(char* buffer, int n) {
 	//ubuffer[n+2]=0;
 }
 
+static int nUse = 24;
 // Transmit the first n characters of the input string, zeroes included,
 // up to 255 characters (maximum size of the helium string)
 char HeTrans255(char* inpt, int n) {
 	// Only broadcast if the radio is on. Otherwise, don't bother
+	static char HeOut[265];	// 255 data characters + 8 header + 2 checksum
 	if(OSReadBinSem(BINSEM_HEON_P)) {
 		if(n>255) n=255;
 		if(n<0) n=0;
-		char HeOut[n+10];
+		n = nUse;
 		HeOut[0]=SYNC1;
 		HeOut[1]=SYNC2;
 		HeOut[2]=HE_COMMAND;
@@ -74,17 +76,22 @@ char HeTrans255(char* inpt, int n) {
 			i++;
 		}
 		HeCkSum(HeOut,8+n); //This will append two bytes to the end.
-		for(i=0;i<(10+n);i++)
+		for(i=0;i<(10+n);i++) {
 				csk_uart1_putchar(HeOut[i]);
+		}			
+		OSSignalMsgQ(MSGQ_HETX_P, (OStypeMsgP) HeOut);
 		// -------- THIS ONE PASSES THE STRING TO THE QUEUE ---------------------
-		char *ugh2 = "Ugh2";
-		OSSignalMsgQ(MSGQ_HETX_P, (OStypeMsgP) ugh2);
+//		char *ugh2 = "Ugh2";
+//		OSSignalMsgQ(MSGQ_HETX_P, (OStypeMsgP) ugh2);
 
-		// --------- THIS ONE DOES NOT PASS THE STRING TO THE QUEUE ------------
-		char ugh[4];
-		sprintf(ugh, "Ugh!");
-        //int tst = 
-		OSSignalMsgQ(MSGQ_HETX_P, (OStypeMsgP) ugh);
+//		static char ugh[4];
+//		sprintf(ugh, "Ugz!");
+//		OSSignalMsgQ(MSGQ_HETX_P, (OStypeMsgP) ugh);
+//		static char hetest[255];
+//		for (i=0; i < (n+2); i++) {
+//			hetest[i] = HeOut[i+8];
+//		}
+//		OSSignalMsgQ(MSGQ_HETX_P, (OStypeMsgP) hetest);
 //		if (tst == OSNOERR) {
 //			return 1;
 //		} else if (tst == OSERR_BAD_P) {
@@ -194,50 +201,64 @@ void task_HeTalk(void) {
 //	static int DELAY2 = 600;
 //	OSSignalBinSem(BINSEM_CLEAR_TO_SEND_P);
     static OStypeMsgP msgP;
+//	static char n;
 //    static char* packet;
-    static unsigned int dataLength;
+//    static unsigned int dataLength;
 //	static char *ugh = "UGH2";
 //	sprintf(ugh, "UGH2");
 
 	while(1) {
         /* Wait forever for a message to transmit to the Helium. */
         OS_WaitMsgQ(MSGQ_HETX_P, &msgP, OSNO_TIMEOUT);
-		char HeOut[32];
-		HeOut[0]=SYNC1;
-		HeOut[1]=SYNC2;
-		HeOut[2]=HE_COMMAND;
-		HeOut[3]=TRANSMIT_DATA; //Transmit.
-		HeOut[4]=0x00;          // No parameter
-		HeOut[5]=0x04; //n=Size of payload.
-		sprintf(HeOut, "%c%c%c%c%c%c%c%c%s", SYNC1, SYNC2, HE_COMMAND, 
-			TRANSMIT_DATA, 0x00, 0x04, 0x00, 0x00, (char *) msgP);
-		HeCkSum(HeOut,6); //This will append two bytes to the end.
         int i=0;
-//		HeOut[8] = msgP;
-//		for (i=0; i < HeOut[5]; i++) {
-//			HeOut[8+i]=  msgP[i];
+//		while (msgP+i != '\0') {
+//			csk_uart1_putchar((char) (msgP+i));
+//			i++;
 //		}
-		HeCkSum(HeOut, 8+HeOut[5]);
-        for (i=0; i < 10 + HeOut[5]; i++) {
-            csk_uart1_putchar(HeOut[i]);
+		static char HeOut2[265];
+		sprintf(HeOut2, (char *) msgP);
+		OS_Delay(50);
+        for (i=0; i < (10+nUse); i++) {
+            csk_uart1_putchar(HeOut2[i]);
         }
-        /* A message has arrived. The sixth character is the length of the
-         * data payload. (Note that there's always 8 characters before
-         * the payload, and there are 2 characters after a payload of
-         * nonzero length.)
-         */
-//        dataLength = (unsigned int) msgP[5] + 8;
-        if (dataLength > 8) {
-            // Add the two checksum bytes to the end
-            dataLength = dataLength + 2;
+//		HeOut[0]=SYNC1;
+//		HeOut[1]=SYNC2;
+//		HeOut[2]=HE_COMMAND;
+//		HeOut[3]=TRANSMIT_DATA; //Transmit.
+//		HeOut[4]=0x00;          // No parameter
+//		HeOut[5]=0x14; //n=Size of payload.
+//		HeCkSum(HeOut,6); //This will append two bytes to the end.
+//		sprintf(HeOut, "%c%c%c%c%c%c%c%c%s", SYNC1, SYNC2, HE_COMMAND, 
+//			TRANSMIT_DATA, 0x00, 0x04, 0x00, 0x00, (char *) msgP);
+//		HeOut[8] = msgP;
+//		for (i=0; i < 30; i++) {
+//			HeOut[i]=  msgP[i];
+//		}
+//		HeCkSum(HeOut, 8+HeOut[5]);
+//		int n = strlen(HeOut2);
+		OS_Delay(50);
+		static char HeOut3[265];
+		sprintf(HeOut3, (char *) msgP);
+		HeOut3[5]=0x01; //n=Size of payload.
+		HeCkSum(HeOut3,6); //This will append two bytes to the end.
+		HeOut3[8]='A';
+		HeCkSum(HeOut3,9);
+        for (i=0; i < 11; i++) {
+            csk_uart1_putchar(HeOut3[i]);
         }
-        // Now, wait for the radio to be unoccupied
-//        OS_WaitBinSem(BINSEM_CLEAR_TO_SEND_P, OSNO_TIMEOUT);
-        // The first character is the
-//        int i=0;
-        for (i=0; i < dataLength; i++) {
-//            csk_uart1_putchar((int) msgP[i]);
-        }
+		OS_Delay(50);
+
+//		sprintf(HeOut, "%c%c%c%c%c%c%c%c%s", SYNC1, SYNC2, HE_COMMAND, 
+//			TRANSMIT_DATA, 0x00, 0x04, 0x00, 0x00, (char *) msgP);
+//		HeCkSum(HeOut,6); //This will append two bytes to the end.
+//		HeOut[8] = msgP;
+//		for (i=0; i < 30; i++) {
+//			HeOut[i]=  msgP[i];
+//		}
+//		HeCkSum(HeOut, 8+HeOut[5]);
+//		int n = strlen(HeOut2);
+
+
         // We have finished our time with the radio. Signal that
         // it's clear to send
         OSSignalBinSem(BINSEM_CLEAR_TO_SEND_P);
